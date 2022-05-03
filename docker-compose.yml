@@ -57,6 +57,8 @@ services:
       FLOW_DBPATH: /flowdb
     networks:
       - private
+    ports:
+      - "3569:3569"
 
   api:
     build:
