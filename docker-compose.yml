@@ -67,7 +67,7 @@ services:
     networks:
       - private
     ports:
-      - "3000:3000"
+      - "3005:3005"
     env_file:
       - ./.env
     environment:
