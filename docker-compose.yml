@@ -70,6 +70,8 @@ services:
       - private
     ports:
       - "3005:3005"
+    volumes:
+       - ${PWD}/setup_account.cdc:/setup_account.cdc
     env_file:
       - ./.env
     environment:
