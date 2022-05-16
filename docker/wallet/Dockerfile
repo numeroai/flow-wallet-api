@@ -28,7 +28,7 @@ WORKDIR /dist
 RUN cp /build/main .
 
 FROM scratch as dist
-
+COPY setup_account.cdc ./
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /dist/main /
 
