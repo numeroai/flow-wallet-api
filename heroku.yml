@@ -2,4 +2,4 @@ build:
   docker:
     web: numero.Dockerfile
 run:
-  web: ./main
+  web: FLOW_WALLET_PORT=$PORT ./main
