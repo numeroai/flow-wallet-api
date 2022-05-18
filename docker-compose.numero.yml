@@ -63,7 +63,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: ./docker/wallet/Dockerfile
+      dockerfile: ./numero.Dockerfile
       target: dist
       network: host # docker build sometimes has problems fetching from alpine's CDN
     networks:
