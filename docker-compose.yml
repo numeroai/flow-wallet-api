@@ -57,8 +57,6 @@ services:
       FLOW_DBPATH: /flowdb
     networks:
       - private
-    ports:
-      - "3569:3569"
 
   api:
     build:
@@ -69,7 +67,7 @@ services:
     networks:
       - private
     ports:
-      - "3005:3005"
+      - "3000:3000"
     env_file:
       - ./.env
     environment:
