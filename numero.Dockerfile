@@ -27,7 +27,7 @@ WORKDIR /dist
 
 RUN cp /build/main .
 
-FROM scratch as dist
+FROM alpine:3.15 as dist
 COPY custom_account_setup.cdc ./
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /dist/main /
