@@ -32,4 +32,4 @@ COPY custom_account_setup.cdc ./
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /dist/main /
 
-CMD FLOW_WALLET_PORT=$PORT /main
+CMD FLOW_WALLET_PORT=$PORT FLOW_WALLET_DATABASE_DSN=$DATABASE_URL /main
