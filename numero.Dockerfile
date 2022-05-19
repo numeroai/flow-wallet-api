@@ -21,7 +21,7 @@ FROM dependencies AS builder
 
 COPY . .
 
-RUN ./heroku-build.sh
+RUN ./build.sh
 
 WORKDIR /dist
 
