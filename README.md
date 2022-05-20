@@ -1,4 +1,44 @@
-# Flow Wallet API
+# Numero Fork of Flow Wallet API
+This is a fork of [flow-hydraulics/flow-wallet-api](https://github.com/flow-hydraulics/flow-wallet-api) which was forked so that we could manage deployment and customize configuration specifically for Electables.
+
+## Running Locally
+
+1. It is recommended to run the `flow-wallet-api` locally via Docker Compose, so make sure you've installed Docker and Docker Compose. You can install both by downloading [Docker Desktop](https://docs.docker.com/get-docker/).
+1. Create a `.env` config file and copy the contents of `.env.numero.example` into it: `cp .env.numero.example .env`
+1. Start the Wallet API, Flow Emulator, Postgres DB and Redis from docker-compose, and make sure to pass our specify to use our custom `docker-compose.numero.yml` file:
+`docker-compose -f docker-compose.numero.yml up`
+
+    * The first time you run this command, it will take a while because it needs to pull the necessary docker images.
+    * If you want to run this in detached mode, pass `-d` to the command above.
+    * If you want to rebuild the docker images, pass `--build` to the command above.
+
+1. The API can be accessed at http://localhost:3005/v1
+1. To stop the containers, run: `docker-compose down`
+
+## Customization Notes
+
+To accommodate customizations for our setup, we have a several custom files: `docker-compose.numero.yml`, `numero.Dockerfile` and `.env.numero.example`. Hopefully having custom files will allow us to upgrade the repository, by merging updates from [https://github.com/flow-hydraulics/flow-wallet-api](https://github.com/flow-hydraulics/flow-wallet-api), without merge conflicts.
+
+* `docker-compose.numero.yml`
+    * Includes exposing the Flow Emulator port 3569 to the host machine so that we can deploy our contracts for local development.
+    * Adds `DATABASE_URL` and `PORT` env vars to the api so that we can more closely mimic how we're starting up the service Heroku - `DATABASE_URL` and `PORT` are both set by Heroku in deployment.
+
+* `numero.Dockerfile`
+    * Located at the root of the project instead of the `docker` directory. We need the Docker image to be aware of the root of the project for its context, so we can copy the `go.mod`, `go.sum` and `custom_account_setup.cdc` files. In Heroku you're not able to set the context to a custom location - it has to be in the same directory as the Dockerfile.
+    * Builds the `dist` build step from `alpine:3.15` instead of `scratch` so we have access to `/bin/sh` for the `CMD` step. 
+    * Uses `CMD` instead of `ENTRYPOINT` so that Heroku is able to figure out how to start the service up properly. 
+    * Passes in several environment variables from the Heroku setup that are needed to start the service. For local development we're setting those in the `docker-compose.numero.yml` file.
+
+* `.env.numero.example`
+    * Sets the `FLOW_WALLET_JOB_STATUS_WEBHOOK` environment variable to http://host.docker.internal:8080/flow_wallet_api/webhook so that the API will post back to `electables-smart-contracts`, when it is also running on the host machine.
+    * Sets `FLOW_WALLET_SCRIPT_PATH_CREATE_ACCOUNT` so that we are able to use custom_account_setup.cdc script to create an Electables collection for every new account created.
+    * Sets `FLOW_WALLET_ADMIN_PRIVATE_KEY` to the private key used in local development for `electable-smart-contracts`.
+
+See the upstream README below for additional information.
+
+---
+
+# Flow Hydraulics Flow Wallet API
 
 The Flow Wallet API is a REST HTTP service that allows a developer to integrate wallet functionality into a larger Flow application infrastructure.
 This service can be used by an application that needs to manage Flow user accounts and the assets inside them.
