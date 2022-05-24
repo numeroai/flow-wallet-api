@@ -28,7 +28,10 @@ WORKDIR /dist
 RUN cp /build/main .
 
 FROM alpine:3.15 as dist
-COPY custom_account_setup.cdc ./
+COPY custom_account_setup_emulator.cdc ./
+COPY custom_account_setup_qa.cdc ./
+COPY custom_account_setup_staging.cdc ./
+COPY custom_account_setup_production.cdc ./
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /dist/main /
 
