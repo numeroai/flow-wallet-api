@@ -57,21 +57,24 @@ services:
       FLOW_DBPATH: /flowdb
     networks:
       - private
+    ports:
+      - "3569:3569"
 
   api:
     build:
       context: .
-      dockerfile: ./docker/wallet/Dockerfile
+      dockerfile: ./numero.Dockerfile
       target: dist
       network: host # docker build sometimes has problems fetching from alpine's CDN
     networks:
       - private
     ports:
-      - "3000:3000"
+      - "3005:3005"
     env_file:
       - ./.env
     environment:
-      FLOW_WALLET_DATABASE_DSN: postgresql://wallet:wallet@db:5432/wallet
+      DATABASE_URL: postgresql://wallet:wallet@db:5432/wallet
+      PORT: 3005
       FLOW_WALLET_DATABASE_TYPE: psql
       FLOW_WALLET_ACCESS_API_HOST: emulator:3569
       FLOW_WALLET_CHAIN_ID: flow-emulator
