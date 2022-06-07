@@ -1,0 +1,68 @@
+name: Deploy to QA, staging, and production
+on:
+  release:
+    types: [released]
+jobs:
+  deploy_qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Heroku Authentication
+        run: |
+          cat > ~/.netrc <<EOF
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      - name: Deploy flow_wallet_api
+        run: |
+          git remote add flow-wallet-api-qa https://git.heroku.com/limitless-headland-29647.git
+          git push --force flow-wallet-api-qa main
+  deploy_staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Heroku Authentication
+        run: |
+          cat > ~/.netrc <<EOF
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      - name: Deploy flow_wallet_api
+        run: |
+          git remote add flow-wallet-api-staging https://git.heroku.com/stormy-stag-75814.git
+          git push --force flow-wallet-api-staging main
+  deploy_production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Heroku Authentication
+        run: |
+          cat > ~/.netrc <<EOF
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      - name: Deploy flow_wallet_api
+        run: |
+          git remote add flow-wallet-api-production https://git.heroku.com/secure-anchorage-35021.git
+          git push --force flow-wallet-api-production main

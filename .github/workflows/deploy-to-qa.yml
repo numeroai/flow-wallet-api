@@ -1,0 +1,26 @@
+name: Deploy to QA
+on:
+  release:
+    types: [prereleased]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Heroku Authentication
+        run: |
+          cat > ~/.netrc <<EOF
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+      - name: Deploy flow_wallet_api
+        run: |
+          git remote add flow-wallet-api-qa https://git.heroku.com/limitless-headland-29647.git
+          git push --force flow-wallet-api-qa main
