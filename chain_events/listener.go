@@ -10,7 +10,6 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
 	"github.com/flow-hydraulics/flow-wallet-api/system"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/client"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -71,6 +70,8 @@ func NewListener(
 		opt(listener)
 	}
 
+	log.Debug(listener)
+
 	return listener
 }
 
@@ -83,11 +84,7 @@ func (l *ListenerImpl) run(ctx context.Context, start, end uint64) error {
 	}
 
 	for _, t := range eventTypes {
-		r, err := l.fc.GetEventsForHeightRange(ctx, client.EventRangeQuery{
-			Type:        t,
-			StartHeight: start,
-			EndHeight:   end,
-		})
+		r, err := l.fc.GetEventsForHeightRange(ctx, t, start, end)
 		if err != nil {
 			return err
 		}
@@ -167,6 +164,7 @@ func (l *ListenerImpl) Start() Listener {
 						// Unable to connect to chain, pause system.
 						if l.systemService != nil {
 							entry.Warn("Unable to connect to chain, pausing system")
+							entry.Warn(err)
 							if err := l.systemService.Pause(); err != nil {
 								entry.
 									WithFields(log.Fields{"error": err}).

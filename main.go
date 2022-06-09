@@ -23,7 +23,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/transactions"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/onflow/flow-go-sdk/client"
+	access "github.com/onflow/flow-go-sdk/access/grpc"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
@@ -74,7 +74,11 @@ func runServer(cfg *configs.Config) {
 
 	// Flow client
 	// TODO: WithInsecure()?
-	fc, err := client.New(cfg.AccessAPIHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	fc, err := access.NewClient(
+		cfg.AccessAPIHost,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(cfg.GrpcMaxCallRecvMsgSize)),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,7 +96,10 @@ func runServer(cfg *configs.Config) {
 	}
 	defer gorm.Close(db)
 
-	systemService := system.NewService(system.NewGormStore(db))
+	systemService := system.NewService(
+		system.NewGormStore(db),
+		system.WithPauseDuration(cfg.PauseDuration),
+	)
 
 	// Create a worker pool
 	wp := jobs.NewWorkerPool(
@@ -101,6 +108,10 @@ func runServer(cfg *configs.Config) {
 		cfg.WorkerCount,
 		jobs.WithJobStatusWebhook(cfg.JobStatusWebhookUrl, cfg.JobStatusWebhookTimeout),
 		jobs.WithSystemService(systemService),
+		jobs.WithMaxJobErrorCount(cfg.MaxJobErrorCount),
+		jobs.WithDbJobPollInterval(cfg.DBJobPollInterval),
+		jobs.WithAcceptedGracePeriod(cfg.AcceptedGracePeriod),
+		jobs.WithReSchedulableGracePeriod(cfg.ReSchedulableGracePeriod),
 	)
 
 	defer func() {
