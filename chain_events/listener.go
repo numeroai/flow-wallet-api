@@ -2,6 +2,7 @@ package chain_events
 
 import (
 	"context"
+	"fmt"
 
 	"strings"
 	"time"
@@ -165,6 +166,9 @@ func (l *ListenerImpl) Start() Listener {
 				})
 
 				if err != nil {
+					errMsg := fmt.Sprintf("Getting latest block header err: %s", err)
+					entry.Warn(errMsg)
+
 					if wallet_errors.IsChainConnectionError(err) {
 						// Unable to connect to chain, pause system.
 						if l.systemService != nil {
