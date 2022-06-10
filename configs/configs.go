@@ -118,6 +118,9 @@ type Config struct {
 	// Redis URL for idempotency key storage, e.g. "redis://walletapi:wallet-api-redis@localhost:6379/"
 	IdempotencyMiddlewareRedisURL string `env:"IDEMPOTENCY_MIDDLEWARE_REDIS_URL" envDefault:""`
 
+	EnableAuthMiddleware bool   `env:"ENABLE_AUTH_MIDDLEWARE" envDefault:"false"`
+	ApiSecretToken       string `env:"API_SECRET_TOKEN" envDefault:""`
+
 	// Set the starting height for event polling. This won't have any effect if the value in
 	// database (chain_event_status[0].latest_height) is greater.
 	// If 0 (default) use latest block height if starting fresh (no previous value in database).

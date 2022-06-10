@@ -17,6 +17,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/jobs"
 	"github.com/flow-hydraulics/flow-wallet-api/keys"
 	"github.com/flow-hydraulics/flow-wallet-api/keys/basic"
+	"github.com/flow-hydraulics/flow-wallet-api/middleware"
 	"github.com/flow-hydraulics/flow-wallet-api/system"
 	"github.com/flow-hydraulics/flow-wallet-api/templates"
 	"github.com/flow-hydraulics/flow-wallet-api/tokens"
@@ -289,6 +290,12 @@ func runServer(cfg *configs.Config) {
 			Expiry:      1 * time.Hour,
 			IgnorePaths: []string{"/v1/scripts"}, // Scripts are read-only
 		}, is)
+	}
+
+	if cfg.EnableAuthMiddleware {
+		log.Info("Auth middleware enabled")
+		authMiddleware := middleware.NewAuthMiddleware(cfg.ApiSecretToken)
+		rv.Use(authMiddleware.Middleware)
 	}
 
 	// Server boilerplate
