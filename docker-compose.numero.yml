@@ -44,8 +44,8 @@ services:
       retries: 10
 
   emulator:
-    image: gcr.io/flow-container-registry/emulator:0.27.3
-    command: emulator --persist
+    image: gcr.io/flow-container-registry/emulator:0.33.1
+    command: emulator --persist -v
     volumes:
       - emulator-persist:/flowdb
     env_file:
