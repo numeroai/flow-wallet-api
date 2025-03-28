@@ -2,8 +2,6 @@ module github.com/flow-hydraulics/flow-wallet-api
 
 go 1.22
 
-toolchain go1.23.4
-
 require (
 	cloud.google.com/go/kms v1.15.7
 	github.com/aws/aws-sdk-go-v2 v1.27.0
