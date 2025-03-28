@@ -82,7 +82,7 @@ require (
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.10 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/onflow/atree v0.8.0-rc.6 // indirect
 	github.com/onflow/crypto v0.25.1 // indirect
 	github.com/onflow/flow/protobuf/go/flow v0.4.7 // indirect
