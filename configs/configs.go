@@ -27,7 +27,7 @@ type Config struct {
 	// -- Admin account --
 
 	AdminAddress    string `env:"ADMIN_ADDRESS,notEmpty"`
-	AdminKeyIndex   int    `env:"ADMIN_KEY_INDEX" envDefault:"0"`
+	AdminKeyIndex   uint32    `env:"ADMIN_KEY_INDEX" envDefault:"0"`
 	AdminKeyType    string `env:"ADMIN_KEY_TYPE" envDefault:"local"`
 	AdminPrivateKey string `env:"ADMIN_PRIVATE_KEY,notEmpty"`
 	// This sets the number of proposal keys to be used on the admin account.
@@ -43,7 +43,7 @@ type Config struct {
 	// - aws_kms
 	// - google_kms
 	DefaultKeyType  string `env:"DEFAULT_KEY_TYPE" envDefault:"local"`
-	DefaultKeyIndex int    `env:"DEFAULT_KEY_INDEX" envDefault:"0"`
+	DefaultKeyIndex uint32    `env:"DEFAULT_KEY_INDEX" envDefault:"0"`
 	// If the default of "-1" is used for "DefaultKeyWeight"
 	// the service will use flow.AccountKeyWeightThreshold from the Flow SDK.
 	DefaultKeyWeight int    `env:"DEFAULT_KEY_WEIGHT" envDefault:"-1"`

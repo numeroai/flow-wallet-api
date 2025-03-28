@@ -46,7 +46,7 @@ func (s *GormStore) AccountKey(address string) (Storable, error) {
 	return k, err
 }
 
-func (s *GormStore) ProposalKeyIndex(limitKeyCount int) (int, error) {
+func (s *GormStore) ProposalKeyIndex(limitKeyCount int) (uint32, error) {
 	s.proposalKeyMutex.Lock()
 	defer s.proposalKeyMutex.Unlock()
 

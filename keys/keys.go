@@ -22,7 +22,7 @@ var ErrAdminProposalKeyCountMismatch = errors.New("admin-proposal-key count mism
 // Manager provides the functions needed for key management.
 type Manager interface {
 	// Generate generates a new Key using provided key index and weight.
-	Generate(ctx context.Context, keyIndex, weight int) (*flow.AccountKey, *Private, error)
+	Generate(ctx context.Context, keyIndex uint32, weight int) (*flow.AccountKey, *Private, error)
 	// GenerateDefault generates a new Key using application defaults.
 	GenerateDefault(context.Context) (*flow.AccountKey, *Private, error)
 	// Save is responsible for converting an "in flight" key to a storable key.
@@ -49,7 +49,7 @@ type Manager interface {
 type Storable struct {
 	ID             int            `json:"-" gorm:"primaryKey"`
 	AccountAddress string         `json:"-" gorm:"index"`
-	Index          int            `json:"index" gorm:"index"`
+	Index          uint32            `json:"index" gorm:"index"`
 	Type           string         `json:"type"`
 	Value          []byte         `json:"-"`
 	PublicKey      string         `json:"publicKey"`
@@ -67,7 +67,7 @@ func (Storable) TableName() string {
 
 type ProposalKey struct {
 	ID        int `json:"-" gorm:"primaryKey"`
-	KeyIndex  int `gorm:"unique"`
+	KeyIndex  uint32 `gorm:"unique"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -79,7 +79,7 @@ func (ProposalKey) TableName() string {
 // Private is an "in flight" account private key meaning its Value should be the actual
 // private key or resource id (unencrypted).
 type Private struct {
-	Index    int                       `json:"index"`
+	Index    uint32                       `json:"index"`
 	Type     string                    `json:"type"`
 	Value    string                    `json:"-"`
 	SignAlgo crypto.SignatureAlgorithm `json:"-"`

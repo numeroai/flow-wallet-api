@@ -32,7 +32,7 @@ type kmsPubKey struct {
 // Generates an asymmetric signing & verification key (ECC_SECG_P256K1 / ECDSA_SHA_256) in AWS KMS
 // and returns data required for account creation; a flow.AccountKey and a private key. The private
 // key has the KMS key ARN as the value.
-func Generate(cfg *configs.Config, ctx context.Context, keyIndex, weight int) (*flow.AccountKey, *keys.Private, error) {
+func Generate(cfg *configs.Config, ctx context.Context, keyIndex uint32, weight int) (*flow.AccountKey, *keys.Private, error) {
 	client := createKMSClient(ctx)
 
 	// Create the new key in AWS KMS

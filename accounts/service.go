@@ -352,7 +352,7 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 	publicKeys := []*flow.AccountKey{}
 
 	// Create copies based on the configured key count, changing just the index
-	for i := 0; i < int(s.cfg.DefaultAccountKeyCount); i++ {
+	for i := uint32(0); i < uint32(s.cfg.DefaultAccountKeyCount); i++ {
 		clonedAccountKey := *accountKey
 		clonedAccountKey.Index = i
 
