@@ -18,11 +18,12 @@ func (b *Balance) MarshalJSON() ([]byte, error) {
 	}
 
 	// Only handle fixed point numbers differently, rest can use the default
-	_, isUfix64 := b.CadenceValue.Type().(cadence.UFix64Type)
-	_, isFix64 := b.CadenceValue.Type().(cadence.Fix64Type)
-	if isUfix64 || isFix64 {
-		return json.Marshal(b.CadenceValue.String())
-	}
+	// _, isUfix64 := b.CadenceValue.Type().(cadence.UFix64Type)
+	// _, isFix64 := b.CadenceValue.Type().(cadence.Fix64Type)
 
-	return json.Marshal(b.CadenceValue.ToGoValue())
+	// return json.Marshal(b.CadenceValue.ToGoValue())
+
+	// todo: Is it okay to always return balance's as a string?
+	return json.Marshal(b.CadenceValue.String())
+
 }
