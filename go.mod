@@ -18,7 +18,7 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/lib/pq v1.10.4
 	github.com/onflow/cadence v0.36.0
-	github.com/onflow/flow-go-sdk v0.35.0
+	github.com/onflow/flow-go-sdk v0.36.0
 	github.com/sirupsen/logrus v1.8.1
 	go.uber.org/goleak v1.1.12
 	go.uber.org/ratelimit v0.2.0
@@ -48,8 +48,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.2 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/bits-and-blooms/bitset v1.2.2 // indirect
-	github.com/btcsuite/btcd v0.22.0-beta // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/ethereum/go-ethereum v1.10.12 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.1-0.20220515183430-ad2eae63303f // indirect
 	github.com/fxamacker/circlehash v0.3.0 // indirect
@@ -73,7 +74,7 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-sqlite3 v1.14.10 // indirect
 	github.com/onflow/atree v0.5.0 // indirect
-	github.com/onflow/flow-go/crypto v0.24.4 // indirect
+	github.com/onflow/flow-go/crypto v0.24.7 // indirect
 	github.com/onflow/flow/protobuf/go/flow v0.3.1 // indirect
 	github.com/onflow/sdks v0.5.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
