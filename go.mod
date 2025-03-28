@@ -17,8 +17,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/jpillora/backoff v1.0.0
 	github.com/lib/pq v1.10.4
-	github.com/onflow/cadence v0.36.0
-	github.com/onflow/flow-go-sdk v0.36.0
+	github.com/onflow/cadence v0.37.0
+	github.com/onflow/flow-go-sdk v0.37.0
 	github.com/sirupsen/logrus v1.8.1
 	go.uber.org/goleak v1.1.12
 	go.uber.org/ratelimit v0.2.0
