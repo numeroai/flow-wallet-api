@@ -100,7 +100,7 @@ func (s *KeyManager) CheckAdminProposalKeyCount(ctx context.Context) error {
 	return nil
 }
 
-func (s *KeyManager) Generate(ctx context.Context, keyIndex, weight int) (*flow.AccountKey, *keys.Private, error) {
+func (s *KeyManager) Generate(ctx context.Context, keyIndex uint32, weight int) (*flow.AccountKey, *keys.Private, error) {
 	switch s.cfg.DefaultKeyType {
 	default:
 		return nil, nil, fmt.Errorf("keyStore.Generate() not implmented for %s", s.cfg.DefaultKeyType)
