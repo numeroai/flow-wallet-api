@@ -8,6 +8,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/chain_events"
 	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
 	"github.com/flow-hydraulics/flow-wallet-api/templates"
+	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go-sdk"
 	log "github.com/sirupsen/logrus"
 )
@@ -34,8 +35,15 @@ func (h *ChainEventHandler) handleDeposit(ctx context.Context, event flow.Event)
 		return
 	}
 
-	amountOrNftID := event.Value.Fields[0]
-	accountAddress := event.Value.Fields[1]
+	// TODO: double check that these field names are correct
+	// they are based on https://github.com/onflow/flow-ft/blob/master/contracts/FungibleToken.cdc
+	// and https://github.com/onflow/flow-nft/blob/master/contracts/NonFungibleToken.cdc
+	fields := event.Value.FieldsMappedByName()
+	amount := fields["amount"]
+	nftId := fields["id"]
+	accountAddress := fields["to"]
+	var amountOrNftID cadence.Value
+	if amount != nil { amountOrNftID = amount } else { amountOrNftID = nftId }
 
 	// Get the target account from database
 	account, err := h.AccountService.Details(flow_helpers.HexString(accountAddress.String()))
