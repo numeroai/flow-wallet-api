@@ -8,7 +8,7 @@ import (
 	"fmt"
 	h "net/http"
 
-	// c_json "github.com/onflow/cadence/encoding/json"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
 
 	// "os"
 	// "strings"
@@ -20,6 +20,7 @@ import (
 	"github.com/onflow/flow-go-sdk/access/http"
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
+	t "github.com/onflow/sdks"
 
 	"github.com/onflow/flow-go-sdk/examples"
 
@@ -75,7 +76,7 @@ func runKmsUpdate() {
 		fmt.Println("Error getting account", getErr)
 	}
 
-	currentAcctKey := acct.Keys[0]
+	currentAcctKey := acct.Keys[0] // may not even need this, flow wallet api handles this stuff
 	fmt.Println("Current account key: ", currentAcctKey)
 
 	// Create the new key to add to your account
@@ -85,9 +86,9 @@ func runKmsUpdate() {
 		SetHashAlgo(crypto.SHA3_256).
 		SetWeight(flow.AccountKeyWeightThreshold)
 
-		//AddAccountKey handles adding the authorizer, script and raw arg
-	addKeyTx, err := templates.AddAccountKey(acctAddr, newAcctKey)
-	examples.Handle(err)
+	//AddAccountKey handles adding the authorizer, script and raw arg
+	addKeyTxScript := t.AddAccountKey
+
 	// i thnk that flow wallet api handles the reference block and the service account stuff :fingers-crossed
 	// // referenceBlockID := examples.GetReferenceBlockId(flowClient)
 	// // serviceAcctAddr,  serviceAcctKey, serviceSigner := ServiceAccount(flowClient)
@@ -99,30 +100,37 @@ func runKmsUpdate() {
 	// // addKeyTx.SetPayer(serviceAcctAddr)
 	// // addKeyTx.AddAuthorizer(acctAddr)
 
-	// actually, i don't think i need to do this, because that is how flow-wallet-api is already setup
-	// // we just need the account to be the proposer?
+	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAcctKey)
+	if kErr != nil {
+		fmt.Println("Error converting account key to cadence crypto key", kErr)
+	}
 
-	// keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(currentAcctKey)
-	// if kErr != nil {
-	// 	fmt.Println("Error converting account key to cadence crypto key", kErr)
-	// }
+	// INSTEAD OF MESSING WITH THIS< MAYBE IT IS EASIER TO CREATE A NEW END POINT, THEN I CAN AVOID THE HTTP STUFF
+	encoded, jsonErr := jsoncdc.Encode(keyAsKeyListEntry)
+	if jsonErr != nil {
+		fmt.Println("Error encoding args with cadence encoder", jsonErr)
+	}
+	fmt.Println("this is the encoded key: ", string(encoded))
+	// fmt.Println("this is the keyAsKeyListEntry: ", keyAsKeyListEntry)
 
-	// encodedArgs, err := c_json.Encode(keyAsKeyListEntry)
+	// encodedArgs, err := jsoncdc.Encode(keyAsKeyListEntry)
 	// if err != nil {
 	// 	fmt.Println("Error encoding args with cadence encoder", err)
 	// }
 
+	// marshaled, err:= jsoncdc.Encode(arg)
+
 	txBody := TxRequestBody{
-		Code:      string(addKeyTx.Script),
-		Arguments: []Argument{},
+		Code:      addKeyTxScript,
+		Arguments: []Argument{string(encoded)},
 	}
 
 	res, err := signTx(txBody, acctAddr.Hex())
 	if err != nil {
 		fmt.Println("Error signing tx", err)
+		return
 	}
 
-	
 	sendRes, err := sendTx(TxRequestBody{Code: res.Code}, acctAddr.Hex())
 	if err != nil {
 		fmt.Println("Error signing tx", err)
@@ -191,15 +199,26 @@ type TransactionSignatureJSON struct {
 }
 
 func signTx(reqBody TxRequestBody, acctAddr string) (SignedTransactionResponse, error) {
+
+	fmt.Println("this is the body before it is changed into json: ", reqBody)
+
 	idempotencyKey := uuid.New().String()
 
-	bodyAsJson, jsonErr := j.Marshal(reqBody)
-	if jsonErr != nil {
-		return SignedTransactionResponse{}, jsonErr
+	b := map[string]interface{}{
+		"code":      reqBody.Code,
+		"arguments": reqBody.Arguments,
 	}
-	fmt.Println("body as json: ", string(bodyAsJson))
-	bodyReader := bytes.NewReader(bodyAsJson)
 
+	jsonBytes, err := j.Marshal(b)
+	if err != nil {
+			fmt.Println("Error marshaling JSON:", err)
+	}
+
+
+	fmt.Println("this is the bodyAs a map: ", b)
+
+
+	bodyReader := bytes.NewReader(jsonBytes)
 	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+acctAddr+"/sign", bodyReader)
 	if reqErr != nil {
 		return SignedTransactionResponse{}, reqErr
@@ -236,7 +255,6 @@ func sendTx(reqBody TxRequestBody, acctAddr string) (JobResponse, error) {
 	if jsonErr != nil {
 		return JobResponse{}, jsonErr
 	}
-	fmt.Println("body as json: ", string(bodyAsJson))
 	bodyReader := bytes.NewReader(bodyAsJson)
 
 	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+acctAddr+"/transactions", bodyReader)
