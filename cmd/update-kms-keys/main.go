@@ -112,25 +112,22 @@ func runKmsUpdate() {
 	// 	fmt.Println("Error encoding args with cadence encoder", err)
 	// }
 
-	txBody := SignTxRequestBody{
+	txBody := TxRequestBody{
 		Code:      string(addKeyTx.Script),
 		Arguments: []Argument{},
 	}
-
-	fmt.Println("txBody: ", txBody)
 
 	res, err := signTx(txBody, acctAddr.Hex())
 	if err != nil {
 		fmt.Println("Error signing tx", err)
 	}
 
-	fmt.Println("Response: ", res)
-
-	// 	// instead of this... i think i need to send the tx the flow-wallet-api to have it signed by the account
-	// 	// err = addKeyTx.SignPayload(acctAddr, acctKey.Index, accountASigner)
-	// 	// if err != nil {
-	// 	// 	panic(fmt.Sprintf("Failed to sign as Account A: %v", err))
-	// 	// }
+	
+	sendRes, err := sendTx(TxRequestBody{Code: res.Code}, acctAddr.Hex())
+	if err != nil {
+		fmt.Println("Error signing tx", err)
+	}
+	fmt.Println("sendRes: ", sendRes)
 
 	// // // Send the transaction to the network.
 	// // err = flowClient.SendTransaction(ctx, *addKeyTx)
@@ -149,7 +146,7 @@ func runKmsUpdate() {
 // this is copy-pasted from flow-wallet-api/transactions/transactions.go
 
 // Transaction JSON HTTP request
-type SignTxRequestBody struct {
+type TxRequestBody struct {
 	Code      string     `json:"code"`
 	Arguments []Argument `json:"arguments"`
 }
@@ -167,42 +164,6 @@ type JobResponse struct {
 	CreatedAt     string   `json:"createdAt"`
 	UpdatedAt     string   `json:"updatedAt"`
 }
-
-// signed tx:
-// {
-//   "code": "transaction(greeting: String) { prepare(signer: AuthAccount){} execute { log(greeting.concat(\", World!\")) }}",
-//   "arguments": [
-//     {
-//       "type": "String",
-//       "value": "Hello"
-//     }
-//   ],
-//   "referenceBlockId": "ff25699272a9f42b5268e1b9c80b40275ef772528d4dfe8aadb8e5aebdea9bd9",
-//   "gasLimit": 9999,
-//   "proposalKey": {
-//     "address": "e245813137217658",
-//     "keyIndex": 0,
-//     "sequenceNumber": 42
-//   },
-//   "payer": "f8d6e0586b0a20c7",
-//   "authorizers": [
-//     "e245813137217658"
-//   ],
-//   "payloadSignatures": [
-//     {
-//       "address": "e245813137217658",
-//       "keyIndex": 0,
-//       "signature": "e2beedaf426c414925a7757defa61d1169781f1d84bc713788767efae54c1e275dc353481fc386cf7a961415cf9e749c384fdec35f8af0fc93e20d2da8cc29ef"
-//     }
-//   ],
-//   "envelopeSignatures": [
-//     {
-//       "address": "e245813137217658",
-//       "keyIndex": 0,
-//       "signature": "e2beedaf426c414925a7757defa61d1169781f1d84bc713788767efae54c1e275dc353481fc386cf7a961415cf9e749c384fdec35f8af0fc93e20d2da8cc29ef"
-//     }
-//   ]
-// }
 
 type SignedTransactionResponse struct {
 	Code               string                     `json:"code"`
@@ -229,7 +190,7 @@ type TransactionSignatureJSON struct {
 	Signature string `json:"signature"`
 }
 
-func signTx(reqBody SignTxRequestBody, acctAddr string) (SignedTransactionResponse, error) {
+func signTx(reqBody TxRequestBody, acctAddr string) (SignedTransactionResponse, error) {
 	idempotencyKey := uuid.New().String()
 
 	bodyAsJson, jsonErr := j.Marshal(reqBody)
@@ -263,6 +224,45 @@ func signTx(reqBody SignTxRequestBody, acctAddr string) (SignedTransactionRespon
 	decodeErr := j.NewDecoder(res.Body).Decode(&body)
 	if decodeErr != nil {
 		return SignedTransactionResponse{}, decodeErr
+	}
+
+	return body, nil
+}
+
+func sendTx(reqBody TxRequestBody, acctAddr string) (JobResponse, error) {
+	idempotencyKey := uuid.New().String()
+
+	bodyAsJson, jsonErr := j.Marshal(reqBody)
+	if jsonErr != nil {
+		return JobResponse{}, jsonErr
+	}
+	fmt.Println("body as json: ", string(bodyAsJson))
+	bodyReader := bytes.NewReader(bodyAsJson)
+
+	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+acctAddr+"/transactions", bodyReader)
+	if reqErr != nil {
+		return JobResponse{}, reqErr
+	}
+
+	req.Header.Add("Idempotency-Key", idempotencyKey)
+	req.Header.Add("Content-Type", "application/json")
+
+	httpClient := &h.Client{}
+
+	res, resErr := httpClient.Do(req)
+	if resErr != nil {
+		return JobResponse{}, resErr
+	}
+
+	if res.StatusCode != h.StatusCreated {
+		fmt.Println("status code: ", res.StatusCode)
+		return JobResponse{}, errors.New("failed to send transaction")
+	}
+
+	var body JobResponse
+	decodeErr := j.NewDecoder(res.Body).Decode(&body)
+	if decodeErr != nil {
+		return JobResponse{}, decodeErr
 	}
 
 	return body, nil
