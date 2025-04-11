@@ -1,17 +1,21 @@
 package main
 
 import (
-	// "bytes"
+	"bytes"
 	"context"
-	// j "encoding/json"
-	// "errors"
+	j "encoding/json"
+	"errors"
 	"fmt"
-	// h "net/http"
+	h "net/http"
+
+	// c_json "github.com/onflow/cadence/encoding/json"
+
 	// "os"
 	// "strings"
 
-	// "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/onflow/flow-go-sdk"
+
 	// "github.com/onflow/flow-go-sdk/access"
 	"github.com/onflow/flow-go-sdk/access/http"
 	"github.com/onflow/flow-go-sdk/crypto"
@@ -22,8 +26,6 @@ import (
 	"github.com/onflow/flowkit/config"
 	"github.com/onflow/flowkit/config/json"
 	"github.com/spf13/afero"
-
-	"github.com/flow-hydraulics/flow-wallet-api/transactions"
 )
 
 const configPath = "../../flow/flow.json"
@@ -61,11 +63,10 @@ func runKmsUpdate() {
 	flowClient, err := http.NewClient(http.EmulatorHost)
 	examples.Handle(err)
 
-	// instead of Random Account, get an account ... 0xfaaecfd784e1508a
 	// todo :
-		// - fetch these from the database
-		// - remove the 0x at the beginning - do i need to do this?
-	
+	// - fetch accounts from the database
+	// - remove the 0x at the beginning - do i need to do this?
+
 	accountAddress := "0xfaaecfd784e1508a"
 	acctAddr := flow.HexToAddress(accountAddress) // this is a flow.Address
 
@@ -75,7 +76,7 @@ func runKmsUpdate() {
 	}
 
 	currentAcctKey := acct.Keys[0]
-	fmt.Println("currentAcctKey: ", currentAcctKey)
+	fmt.Println("Current account key: ", currentAcctKey)
 
 	// Create the new key to add to your account
 	myPrivateKey := examples.RandomPrivateKey() // todo: probably should be smarter about creating the new private key
@@ -84,12 +85,9 @@ func runKmsUpdate() {
 		SetHashAlgo(crypto.SHA3_256).
 		SetWeight(flow.AccountKeyWeightThreshold)
 
-	fmt.Println("newAcctKey", newAcctKey)
-
+		//AddAccountKey handles adding the authorizer, script and raw arg
 	addKeyTx, err := templates.AddAccountKey(acctAddr, newAcctKey)
 	examples.Handle(err)
-	fmt.Println("addKeyTx: ", addKeyTx)
-
 	// i thnk that flow wallet api handles the reference block and the service account stuff :fingers-crossed
 	// // referenceBlockID := examples.GetReferenceBlockId(flowClient)
 	// // serviceAcctAddr,  serviceAcctKey, serviceSigner := ServiceAccount(flowClient)
@@ -101,8 +99,7 @@ func runKmsUpdate() {
 	// // addKeyTx.SetPayer(serviceAcctAddr)
 	// // addKeyTx.AddAuthorizer(acctAddr)
 
-
-	// actually, i don't think i need to do this, because that is how flow-wallet-api is already setup 
+	// actually, i don't think i need to do this, because that is how flow-wallet-api is already setup
 	// // we just need the account to be the proposer?
 
 	// keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(currentAcctKey)
@@ -110,28 +107,30 @@ func runKmsUpdate() {
 	// 	fmt.Println("Error converting account key to cadence crypto key", kErr)
 	// }
 
-
-	// txBody := transactions.JSONRequest{
-	// 	Code: string(addKeyTx.Script),
-	// 	Arguments: []transactions.Argument{keyAsKeyListEntry},
+	// encodedArgs, err := c_json.Encode(keyAsKeyListEntry)
+	// if err != nil {
+	// 	fmt.Println("Error encoding args with cadence encoder", err)
 	// }
 
-	// fmt.Println("txBody: ", txBody)
+	txBody := SignTxRequestBody{
+		Code:      string(addKeyTx.Script),
+		Arguments: []Argument{},
+	}
 
-	// jobRes, jobErr := signTx(txBody, acctAddr.Hex())
+	fmt.Println("txBody: ", txBody)
 
-	// if jobErr != nil {
-	// 	fmt.Println("Error signing tx", jobErr)
-	// }
+	res, err := signTx(txBody, acctAddr.Hex())
+	if err != nil {
+		fmt.Println("Error signing tx", err)
+	}
 
-	// fmt.Println("Job response: ", jobRes)
+	fmt.Println("Response: ", res)
 
 	// 	// instead of this... i think i need to send the tx the flow-wallet-api to have it signed by the account
 	// 	// err = addKeyTx.SignPayload(acctAddr, acctKey.Index, accountASigner)
 	// 	// if err != nil {
 	// 	// 	panic(fmt.Sprintf("Failed to sign as Account A: %v", err))
 	// 	// }
-
 
 	// // // Send the transaction to the network.
 	// // err = flowClient.SendTransaction(ctx, *addKeyTx)
@@ -143,7 +142,128 @@ func runKmsUpdate() {
 
 }
 
-
 // todo: rework the main package name in go.mod so that i can import transactions from the local version of transactions/transacionts.go
-// it would probably work to impoort it from flow-wallet-api's main repo, because i think the type is the same... 
+// it would probably work to impoort it from flow-wallet-api's main repo, because i think the type is the same...
 // but i dont' want to rely on thatA long term
+
+// this is copy-pasted from flow-wallet-api/transactions/transactions.go
+
+// Transaction JSON HTTP request
+type SignTxRequestBody struct {
+	Code      string     `json:"code"`
+	Arguments []Argument `json:"arguments"`
+}
+
+type Argument interface{}
+
+type JobResponse struct {
+	JobId         string   `json:"jobId"`
+	Type          string   `json:"type"`
+	State         string   `json:"state"`
+	Error         string   `json:"error"`
+	Errors        []string `json:"errors"`
+	Result        string   `json:"result"`
+	TransactionId string   `json:"transactionId"`
+	CreatedAt     string   `json:"createdAt"`
+	UpdatedAt     string   `json:"updatedAt"`
+}
+
+// signed tx:
+// {
+//   "code": "transaction(greeting: String) { prepare(signer: AuthAccount){} execute { log(greeting.concat(\", World!\")) }}",
+//   "arguments": [
+//     {
+//       "type": "String",
+//       "value": "Hello"
+//     }
+//   ],
+//   "referenceBlockId": "ff25699272a9f42b5268e1b9c80b40275ef772528d4dfe8aadb8e5aebdea9bd9",
+//   "gasLimit": 9999,
+//   "proposalKey": {
+//     "address": "e245813137217658",
+//     "keyIndex": 0,
+//     "sequenceNumber": 42
+//   },
+//   "payer": "f8d6e0586b0a20c7",
+//   "authorizers": [
+//     "e245813137217658"
+//   ],
+//   "payloadSignatures": [
+//     {
+//       "address": "e245813137217658",
+//       "keyIndex": 0,
+//       "signature": "e2beedaf426c414925a7757defa61d1169781f1d84bc713788767efae54c1e275dc353481fc386cf7a961415cf9e749c384fdec35f8af0fc93e20d2da8cc29ef"
+//     }
+//   ],
+//   "envelopeSignatures": [
+//     {
+//       "address": "e245813137217658",
+//       "keyIndex": 0,
+//       "signature": "e2beedaf426c414925a7757defa61d1169781f1d84bc713788767efae54c1e275dc353481fc386cf7a961415cf9e749c384fdec35f8af0fc93e20d2da8cc29ef"
+//     }
+//   ]
+// }
+
+type SignedTransactionResponse struct {
+	Code               string                     `json:"code"`
+	Arguments          [][]byte                   `json:"arguments"`
+	ReferenceBlockID   string                     `json:"referenceBlockId"`
+	GasLimit           uint64                     `json:"gasLimit"`
+	ProposalKey        ProposalKeyJSON            `json:"proposalKey"`
+	Payer              string                     `json:"payer"`
+	Authorizers        []string                   `json:"authorizers"`
+	PayloadSignatures  []TransactionSignatureJSON `json:"payloadSignatures"`
+	EnvelopeSignatures []TransactionSignatureJSON `json:"envelopeSignatures"`
+}
+
+// are these to json types necessary?
+type ProposalKeyJSON struct {
+	Address        string `json:"address"`
+	KeyIndex       uint32 `json:"keyIndex"`
+	SequenceNumber uint64 `json:"sequenceNumber"`
+}
+
+type TransactionSignatureJSON struct {
+	Address   string `json:"address"`
+	KeyIndex  uint32 `json:"keyIndex"`
+	Signature string `json:"signature"`
+}
+
+func signTx(reqBody SignTxRequestBody, acctAddr string) (SignedTransactionResponse, error) {
+	idempotencyKey := uuid.New().String()
+
+	bodyAsJson, jsonErr := j.Marshal(reqBody)
+	if jsonErr != nil {
+		return SignedTransactionResponse{}, jsonErr
+	}
+	fmt.Println("body as json: ", string(bodyAsJson))
+	bodyReader := bytes.NewReader(bodyAsJson)
+
+	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+acctAddr+"/sign", bodyReader)
+	if reqErr != nil {
+		return SignedTransactionResponse{}, reqErr
+	}
+
+	req.Header.Add("Idempotency-Key", idempotencyKey)
+	req.Header.Add("Content-Type", "application/json")
+
+	httpClient := &h.Client{}
+
+	res, resErr := httpClient.Do(req)
+	if resErr != nil {
+		return SignedTransactionResponse{}, resErr
+	}
+
+	if res.StatusCode != h.StatusCreated {
+		fmt.Println("status code: ", res.StatusCode)
+		return SignedTransactionResponse{}, errors.New("failed to sign transaction")
+	}
+
+	var body SignedTransactionResponse
+	decodeErr := j.NewDecoder(res.Body).Decode(&body)
+	if decodeErr != nil {
+		return SignedTransactionResponse{}, decodeErr
+	}
+
+	return body, nil
+}
