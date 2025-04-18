@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/onflow/cadence"
 	c_json "github.com/onflow/cadence/encoding/json"
@@ -15,7 +16,20 @@ func ArgAsCadence(a Argument) (cadence.Value, error) {
 		return c, nil
 	}
 
-	// Convert to json bytes so we can use cadence's own encoding library
+	s, ok := a.(string)
+	if ok {
+		c, err := c_json.Decode(nil, []byte(s))
+		if err != nil {
+			fmt.Println("THE CJSON ERROR: ", err)
+			return cadence.Void{}, err
+		}
+
+		fmt.Println("this is the cjson decoded value: ", c)
+
+		return c, nil
+	}
+
+	// // Convert to json bytes so we can use cadence's own encoding library
 	j, err := json.Marshal(a)
 	if err != nil {
 		return cadence.Void{}, err
