@@ -110,8 +110,6 @@ func runKmsUpdate() {
 	if jsonErr != nil {
 		fmt.Println("Error encoding args with cadence encoder", jsonErr)
 	}
-	fmt.Println("this is the encoded key: ", string(encoded))
-	// fmt.Println("this is the keyAsKeyListEntry: ", keyAsKeyListEntry)
 
 	// encodedArgs, err := jsoncdc.Encode(keyAsKeyListEntry)
 	// if err != nil {
@@ -120,9 +118,10 @@ func runKmsUpdate() {
 
 	// marshaled, err:= jsoncdc.Encode(arg)
 
+	encodedArguments := []Argument{string(encoded)}
 	txBody := TxRequestBody{
 		Code:      addKeyTxScript,
-		Arguments: []Argument{string(encoded)},
+		Arguments: encodedArguments,
 	}
 
 	res, err := signTx(txBody, acctAddr.Hex())
@@ -131,9 +130,11 @@ func runKmsUpdate() {
 		return
 	}
 
-	sendRes, err := sendTx(TxRequestBody{Code: res.Code}, acctAddr.Hex())
+	fmt.Println("signed tx: ", res.Code)
+
+	sendRes, err := sendTx(TxRequestBody{Code: res.Code, Arguments: encodedArguments}, acctAddr.Hex())
 	if err != nil {
-		fmt.Println("Error signing tx", err)
+		fmt.Println("Error sending tx", err)
 	}
 	fmt.Println("sendRes: ", sendRes)
 
@@ -175,7 +176,7 @@ type JobResponse struct {
 
 type SignedTransactionResponse struct {
 	Code               string                     `json:"code"`
-	Arguments          [][]byte                   `json:"arguments"`
+	Arguments          []Argument                   `json:"arguments"`
 	ReferenceBlockID   string                     `json:"referenceBlockId"`
 	GasLimit           uint64                     `json:"gasLimit"`
 	ProposalKey        ProposalKeyJSON            `json:"proposalKey"`
@@ -200,8 +201,6 @@ type TransactionSignatureJSON struct {
 
 func signTx(reqBody TxRequestBody, acctAddr string) (SignedTransactionResponse, error) {
 
-	fmt.Println("this is the body before it is changed into json: ", reqBody)
-
 	idempotencyKey := uuid.New().String()
 
 	b := map[string]interface{}{
@@ -213,10 +212,6 @@ func signTx(reqBody TxRequestBody, acctAddr string) (SignedTransactionResponse, 
 	if err != nil {
 			fmt.Println("Error marshaling JSON:", err)
 	}
-
-
-	fmt.Println("this is the bodyAs a map: ", b)
-
 
 	bodyReader := bytes.NewReader(jsonBytes)
 	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+acctAddr+"/sign", bodyReader)
