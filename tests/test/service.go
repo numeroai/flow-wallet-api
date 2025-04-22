@@ -82,6 +82,7 @@ func GetServices(t *testing.T, cfg *configs.Config) Services {
 			goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"),
 			goleak.IgnoreTopFunction("google.golang.org/grpc.(*ccBalancerWrapper).watcher"),
 			goleak.IgnoreTopFunction("google.golang.org/grpc/internal/transport.(*controlBuffer).get"),
+			goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"),
 			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/jobs.(*WorkerPoolImpl).startWorkers.func1"),
 			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/jobs.(*WorkerPoolImpl).startDBJobScheduler.func1"),
 			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/chain_events.(*ListenerImpl).Start.func1"),

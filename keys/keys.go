@@ -49,7 +49,7 @@ type Manager interface {
 type Storable struct {
 	ID             int            `json:"-" gorm:"primaryKey"`
 	AccountAddress string         `json:"-" gorm:"index"`
-	Index          uint32            `json:"index" gorm:"index"`
+	Index          uint32         `json:"index" gorm:"index"`
 	Type           string         `json:"type"`
 	Value          []byte         `json:"-"`
 	PublicKey      string         `json:"publicKey"`

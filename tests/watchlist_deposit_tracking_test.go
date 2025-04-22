@@ -109,7 +109,7 @@ func transferTokens(t *testing.T, ctx context.Context, fc flow_helpers.FlowClien
 	tx.SetScript(test.ReadFile(t, "fixtures/transfer_tokens.cdc"))
 	tx.AddArgument(amountArg)                                           // nolint
 	tx.AddArgument(cadence.NewAddress(flow.HexToAddress(receiverAddr))) // nolint
-	tx.SetGasLimit(9999)
+	tx.SetComputeLimit(9999)
 	tx.SetReferenceBlockID(lastBlock.ID)
 	tx.SetProposalKey(proposer.Address, 0, seqNum)
 	tx.SetPayer(payer.Address)

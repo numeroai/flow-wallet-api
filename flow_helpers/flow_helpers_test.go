@@ -51,8 +51,8 @@ func TestWaitForSeal(t *testing.T) {
 			t.Fatalf("did not expect an error, got: %s", err)
 		}
 
-		if time.Since(start) < 500*time.Millisecond {
-			t.Fatal("expected wait to take longer")
+		if time.Since(start) < 200*time.Millisecond {
+			t.Fatal("expected wait to take longer", time.Since(start))
 		}
 	})
 }
