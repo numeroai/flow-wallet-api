@@ -33,6 +33,7 @@ type Service interface {
 	SyncAccountKeyCount(ctx context.Context, address flow.Address) (*jobs.Job, error)
 	Details(address string) (Account, error)
 	InitAdminAccount(ctx context.Context) error
+	AddNewKey(ctx context.Context) (*Account, error)
 }
 
 // ServiceImpl defines the API for account management.
@@ -448,4 +449,9 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 	log.WithFields(log.Fields{"address": account.Address}).Debug("Account created")
 
 	return account, flowTx.ID().String(), nil
+}
+
+func (s *ServiceImpl) AddNewKey(ctx context.Context) (*Account, error) {
+	fmt.Println("AddNewKey called")
+	return &Account{}, nil
 }

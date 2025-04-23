@@ -47,3 +47,7 @@ func (s *Accounts) SyncAccountKeyCount() http.Handler {
 func (s *Accounts) Details() http.Handler {
 	return http.HandlerFunc(s.DetailsFunc)
 }
+
+func (s *Accounts) AddNewKey() http.Handler {
+	return http.HandlerFunc(s.AddNewKeyFunc)
+}

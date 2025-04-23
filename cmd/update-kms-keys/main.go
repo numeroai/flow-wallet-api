@@ -53,7 +53,67 @@ func initConfig() {
 
 func main() {
 	initConfig()
-	runKmsUpdate()
+	// runKmsUpdate()
+	addNewKey()
+}
+
+func addNewKey() {
+      fmt.Println("Running Sync Keys to add new keys to the account")
+
+      ctx := context.Background()
+
+       flowClient, err := http.NewClient(http.EmulatorHost)
+      examples.Handle(err)
+
+       accountAddress := "0xfaaecfd784e1508a"
+       acctAddr := flow.HexToAddress(accountAddress) // this is a flow.Address
+
+       acct, getErr := flowClient.GetAccount(ctx, acctAddr)
+       if getErr != nil {
+               fmt.Println("Error getting account", getErr)
+       }
+
+       currentAcctKey := acct.Keys[0] // may not even need this, flow wallet api
+       fmt.Println("Current account key: ", currentAcctKey)
+
+
+       type ReqBody struct {
+               Address string `json:"address"`
+       }
+
+       b := ReqBody{ Address: acctAddr.Hex() }
+
+       idempotencyKey := uuid.New().String()
+
+       bodyAsJson, jsonErr := j.Marshal(b)
+       if jsonErr != nil {
+               fmt.Println("Error marshaling JSON:", jsonErr)
+       }
+
+       bodyReader := bytes.NewReader(bodyAsJson)
+
+			req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+accountAddress+"/sign", bodyReader)
+			if reqErr != nil {
+							fmt.Println("Error:", jsonErr)
+							return
+			}
+
+       req.Header.Add("Idempotency-Key", idempotencyKey)
+       req.Header.Add("Content-Type", "application/json")
+
+       httpClient := &h.Client{}
+
+       res, resErr := httpClient.Do(req)
+       if resErr != nil {
+               fmt.Println("Error sending http request:", jsonErr)
+               return
+       }
+
+       if res.StatusCode != h.StatusCreated {
+               fmt.Println("status code: ", res.StatusCode)
+       }
+
+	
 }
 
 func runKmsUpdate() {

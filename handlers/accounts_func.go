@@ -135,3 +135,21 @@ func (s *Accounts) SyncAccountKeyCountFunc(rw http.ResponseWriter, r *http.Reque
 
 	handleJsonResponse(rw, http.StatusOK, job)
 }
+
+// this is synchronous for now - make it async to be consistent with the rest
+func (s *Accounts) AddNewKeyFunc(rw http.ResponseWriter, r *http.Request) {
+	// Check body is not empty
+	if err := checkNonEmptyBody(r); err != nil {
+		handleError(rw, r, err)
+		return
+	}
+
+	acc, err := s.service.AddNewKey(r.Context())
+
+	if err != nil {
+		handleError(rw, r, err)
+		return
+	}
+
+	handleJsonResponse(rw, http.StatusCreated, acc)	
+}
