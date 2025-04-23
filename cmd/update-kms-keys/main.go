@@ -92,9 +92,9 @@ func addNewKey() {
 
        bodyReader := bytes.NewReader(bodyAsJson)
 
-			req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+accountAddress+"/sign", bodyReader)
+			req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+accountAddress+"/add-new-key", bodyReader)
 			if reqErr != nil {
-							fmt.Println("Error:", jsonErr)
+							fmt.Println("Error:", reqErr)
 							return
 			}
 
@@ -105,7 +105,7 @@ func addNewKey() {
 
        res, resErr := httpClient.Do(req)
        if resErr != nil {
-               fmt.Println("Error sending http request:", jsonErr)
+               fmt.Println("Error sending http request:", reqErr)
                return
        }
 
