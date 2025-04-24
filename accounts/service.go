@@ -18,6 +18,8 @@ import (
 	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go-sdk"
 	flow_crypto "github.com/onflow/flow-go-sdk/crypto"
+	"github.com/onflow/flow-go-sdk/templates"
+	t "github.com/onflow/sdks"
 	flow_templates "github.com/onflow/flow-go-sdk/templates"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/ratelimit"
@@ -465,6 +467,14 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	}
 	entry.WithFields(log.Fields{"dbAccount": dbAccount}).Debug("account fetched from db")
 
+	// Get flow account from client
+	flowAccount, err := s.fc.GetAccount(ctx, address)
+	  if err != nil {
+	    entry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
+	    return &Account{}, err
+	}
+	fmt.Println("========> Flow account fetched from client, number of keys", len(flowAccount.Keys))
+
 	// Get the existing key to use as the source of the tx
 	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
 	sourceKeyPbkString := strings.TrimPrefix(sourceKey.PublicKey, "0x")
@@ -513,6 +523,40 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	}
 	dbAccount.Keys = append(dbAccount.Keys, dbKey)
 
-	
-	return &Account{}, nil
+	// Prepare transaction arguments
+	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAccountKey)
+	if kErr != nil {
+					fmt.Println("Error converting account key to cadence crypto key", kErr)
+	}
+
+	args := []transactions.Argument{keyAsKeyListEntry}
+
+	entry.WithFields(log.Fields{"args": args}).Info("args prepared")
+	fmt.Println("=======> args:", args)
+
+	// Prepare transaction
+	code := t.AddAccountKey
+	sync := true
+	_, tx, err := s.txs.Create(ctx, sync, dbAccount.Address, code, args, transactions.General)
+
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
+		return &Account{}, err
+	}
+
+	fmt.Println("========> Transaction code", code)
+	fmt.Println("========> Transaction created", tx.TransactionId)
+	entry.WithFields(log.Fields{"txID": tx.TransactionId}).Info("transaction created")
+
+	// Update account in database
+	err = s.store.SaveAccount(&dbAccount)
+	if err != nil {
+			entry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
+			fmt.Println("Error updating account in database", err)
+			return &Account{}, err
+	}
+
+	fmt.Println("========> Account updated in database", dbAccount)
+
+	return &dbAccount, nil
 }
