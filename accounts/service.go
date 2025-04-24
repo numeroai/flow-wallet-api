@@ -451,7 +451,68 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 	return account, flowTx.ID().String(), nil
 }
 
+// AddNewKey adds a new key to the given account
 func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Account, error) {
 	fmt.Println("AddNewKey called")
+	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
+
+	// Get stored account
+	dbAccount, err := s.store.Account(flow_helpers.FormatAddress(address))
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
+		fmt.Println("Error fetching account from database", err)
+		return &Account{}, err
+	}
+	entry.WithFields(log.Fields{"dbAccount": dbAccount}).Debug("account fetched from db")
+
+	// Get the existing key to use as the source of the tx
+	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
+	sourceKeyPbkString := strings.TrimPrefix(sourceKey.PublicKey, "0x")
+	_, err = flow_crypto.DecodePublicKeyHex(flow_crypto.StringToSignatureAlgorithm(sourceKey.SignAlgo), sourceKeyPbkString)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err, "sourceKeyPbkString": sourceKeyPbkString}).Error("failed to decode public key for source key")
+		fmt.Println("Error decoding public key for source key", err)
+		return &Account{}, err
+	}
+	entry.WithFields(log.Fields{"sourceKeyPbkString": sourceKeyPbkString}).Debug("source key selected")
+
+	// Generate a new key pair
+	newAccountKey, newPrivateKey, err := s.km.GenerateDefault(ctx)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to generate new key")
+		fmt.Println("Error generating default key", err)
+		return &Account{}, err
+	}
+
+	// Get the next index and create a private key
+	nextIndex := dbAccount.Keys[len(dbAccount.Keys)-1].Index + 1
+
+	fmt.Println("========> DbAccount", dbAccount)
+	fmt.Println("========> sourceKey", sourceKey)
+	fmt.Println("========> New account key: ", newAccountKey)
+	fmt.Println("========> New private key: ", newPrivateKey)
+	fmt.Println("========> Next index: ", nextIndex)
+
+
+	// Convert the key to storable form (encrypt it)
+	encryptedAccountKey, err := s.km.Save(*newPrivateKey)
+	if err != nil {
+		return &Account{}, err
+	}
+	encryptedAccountKey.PublicKey = newAccountKey.PublicKey.String()
+
+	dbKey := keys.Storable{
+					ID:             0, // Reset ID to create a new key to DB
+					AccountAddress: dbAccount.Address,
+					Index:          nextIndex,
+					Type:           "local",
+					Value:          encryptedAccountKey.Value,
+					PublicKey:      encryptedAccountKey.PublicKey,
+					SignAlgo:       encryptedAccountKey.SignAlgo,
+					HashAlgo:       encryptedAccountKey.HashAlgo,
+	}
+	dbAccount.Keys = append(dbAccount.Keys, dbKey)
+
+	
 	return &Account{}, nil
 }
