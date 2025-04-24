@@ -9,6 +9,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/accounts"
 	"github.com/flow-hydraulics/flow-wallet-api/errors"
 	"github.com/gorilla/mux"
+	"github.com/onflow/flow-go-sdk"
 )
 
 // List returns all accounts.
@@ -138,13 +139,10 @@ func (s *Accounts) SyncAccountKeyCountFunc(rw http.ResponseWriter, r *http.Reque
 
 // this is synchronous for now - make it async to be consistent with the rest
 func (s *Accounts) AddNewKeyFunc(rw http.ResponseWriter, r *http.Request) {
-	// Check body is not empty
-	if err := checkNonEmptyBody(r); err != nil {
-		handleError(rw, r, err)
-		return
-	}
+	vars := mux.Vars(r)
 
-	acc, err := s.service.AddNewKey(r.Context())
+	address := flow.HexToAddress(vars["address"])
+	acc, err := s.service.AddNewKey(r.Context(), address)
 
 	if err != nil {
 		handleError(rw, r, err)
