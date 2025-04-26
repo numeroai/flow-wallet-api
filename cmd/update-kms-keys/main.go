@@ -84,6 +84,4 @@ func addNewKey() {
 	}
 
 	fmt.Println("Response Body: ", body)
-
-
 }
