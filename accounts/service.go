@@ -471,9 +471,7 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	sort.SliceStable(dbAccount.Keys, func(i, j int) bool {
 		return dbAccount.Keys[i].Index < dbAccount.Keys[j].Index
 	})
-	for k, v := range dbAccount.Keys {
-		fmt.Printf("========> Key %d => id: %d, index: %d, public_key: %s\n\n", k, v.ID, v.Index, v.PublicKey)
-	}
+
 	// entry.WithFields(log.Fields{"dbAccount keys": dbAccount.Keys}).Debug("account fetched from db")
 
 	// Get flow account from client
@@ -483,9 +481,6 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		return &Account{}, err
 	}
 	fmt.Println("========> Flow account fetched from client, number of keys", len(flowAccount.Keys))
-
-
-
 
 	// Get the existing key to use as the source of the tx
 	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
@@ -506,28 +501,17 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		fmt.Println("Error generating default key", err)
 		return &Account{}, err
 	}
-	// i probably need to sort the keys!
-	// also there is some weirdness because there are more keys on the chain than in the db - not sure if this will be a problem
-	// with the actual data, but it is worth checking into
-	// maybe i should get the latest key on the chain instead?
-
 
 	// Get the next index and create a private key
 	flowAccountKeys := flowAccount.Keys
 	sort.SliceStable(flowAccountKeys, func(i, j int) bool {
 		return flowAccountKeys[i].Index < flowAccountKeys[j].Index
 	})
-	for k, v := range flowAccountKeys {	
-		fmt.Printf("========> Flow Key %d => index: %d, public_key: %s\n\n", k, v.Index, v.PublicKey)
-	}
-	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
-	// switch to calculating next index based on the number of keys on the chain - this may be more reliable?
+
+	// calculating next index based on the number of keys on the chain
 	// though it probably won't be an issue in production, but in test data there are keys missing from the db that are on the chain
 	// and this causes some mismatches in indexes
-
-
-	fmt.Println("========> sourceKey", sourceKey.PublicKey, sourceKey.Index)
-	fmt.Println("========> Next index: ", nextIndex)
+	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
 
 	// Convert the key to storable form (encrypt it)
 	encryptedAccountKey, err := s.km.Save(*newPrivateKey)
@@ -555,9 +539,7 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	}
 
 	args := []transactions.Argument{keyAsKeyListEntry}
-
 	entry.WithFields(log.Fields{"args": args}).Info("args prepared")
-	fmt.Println("=======> args:", args)
 
 	// Prepare transaction
 	code := t.AddAccountKey
@@ -569,8 +551,6 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		return &Account{}, err
 	}
 
-	fmt.Println("========> Transaction code", code)
-	fmt.Println("========> Transaction created", tx.TransactionId)
 	entry.WithFields(log.Fields{"txID": tx.TransactionId}).Info("transaction created")
 
 	// Update account in database
@@ -581,7 +561,10 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		return &Account{}, err
 	}
 
-	fmt.Println("========> Account updated in database", dbAccount)
-
 	return &dbAccount, nil
 }
+
+
+// next steps :
+//  - use the new key to revoke access for the old key
+//  - this both checks to make sure that our new key can sign and is valid, and also cleans stuff up
