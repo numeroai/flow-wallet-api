@@ -19,8 +19,8 @@ import (
 	"github.com/onflow/flow-go-sdk"
 	flow_crypto "github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
-	t "github.com/onflow/sdks"
 	flow_templates "github.com/onflow/flow-go-sdk/templates"
+	t "github.com/onflow/sdks"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/ratelimit"
 )
@@ -465,18 +465,31 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		fmt.Println("Error fetching account from database", err)
 		return &Account{}, err
 	}
-	entry.WithFields(log.Fields{"dbAccount": dbAccount}).Debug("account fetched from db")
+
+	// acctKeys := dbAccount.Keys
+	// Sort keys by index
+	sort.SliceStable(dbAccount.Keys, func(i, j int) bool {
+		return dbAccount.Keys[i].Index < dbAccount.Keys[j].Index
+	})
+	for k, v := range dbAccount.Keys {
+		fmt.Printf("========> Key %d => id: %d, index: %d, public_key: %s\n\n", k, v.ID, v.Index, v.PublicKey)
+	}
+	// entry.WithFields(log.Fields{"dbAccount keys": dbAccount.Keys}).Debug("account fetched from db")
 
 	// Get flow account from client
 	flowAccount, err := s.fc.GetAccount(ctx, address)
-	  if err != nil {
-	    entry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
-	    return &Account{}, err
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
+		return &Account{}, err
 	}
 	fmt.Println("========> Flow account fetched from client, number of keys", len(flowAccount.Keys))
 
+
+
+
 	// Get the existing key to use as the source of the tx
 	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
+
 	sourceKeyPbkString := strings.TrimPrefix(sourceKey.PublicKey, "0x")
 	_, err = flow_crypto.DecodePublicKeyHex(flow_crypto.StringToSignatureAlgorithm(sourceKey.SignAlgo), sourceKeyPbkString)
 	if err != nil {
@@ -493,16 +506,28 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		fmt.Println("Error generating default key", err)
 		return &Account{}, err
 	}
+	// i probably need to sort the keys!
+	// also there is some weirdness because there are more keys on the chain than in the db - not sure if this will be a problem
+	// with the actual data, but it is worth checking into
+	// maybe i should get the latest key on the chain instead?
+
 
 	// Get the next index and create a private key
-	nextIndex := dbAccount.Keys[len(dbAccount.Keys)-1].Index + 1
+	flowAccountKeys := flowAccount.Keys
+	sort.SliceStable(flowAccountKeys, func(i, j int) bool {
+		return flowAccountKeys[i].Index < flowAccountKeys[j].Index
+	})
+	for k, v := range flowAccountKeys {	
+		fmt.Printf("========> Flow Key %d => index: %d, public_key: %s\n\n", k, v.Index, v.PublicKey)
+	}
+	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
+	// switch to calculating next index based on the number of keys on the chain - this may be more reliable?
+	// though it probably won't be an issue in production, but in test data there are keys missing from the db that are on the chain
+	// and this causes some mismatches in indexes
 
-	fmt.Println("========> DbAccount", dbAccount)
-	fmt.Println("========> sourceKey", sourceKey)
-	fmt.Println("========> New account key: ", newAccountKey)
-	fmt.Println("========> New private key: ", newPrivateKey)
+
+	fmt.Println("========> sourceKey", sourceKey.PublicKey, sourceKey.Index)
 	fmt.Println("========> Next index: ", nextIndex)
-
 
 	// Convert the key to storable form (encrypt it)
 	encryptedAccountKey, err := s.km.Save(*newPrivateKey)
@@ -512,21 +537,21 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	encryptedAccountKey.PublicKey = newAccountKey.PublicKey.String()
 
 	dbKey := keys.Storable{
-					ID:             0, // Reset ID to create a new key to DB
-					AccountAddress: dbAccount.Address,
-					Index:          nextIndex,
-					Type:           "local",
-					Value:          encryptedAccountKey.Value,
-					PublicKey:      encryptedAccountKey.PublicKey,
-					SignAlgo:       encryptedAccountKey.SignAlgo,
-					HashAlgo:       encryptedAccountKey.HashAlgo,
+		ID:             0, // Reset ID to create a new key to DB
+		AccountAddress: dbAccount.Address,
+		Index:          nextIndex,
+		Type:           "local",
+		Value:          encryptedAccountKey.Value,
+		PublicKey:      encryptedAccountKey.PublicKey,
+		SignAlgo:       encryptedAccountKey.SignAlgo,
+		HashAlgo:       encryptedAccountKey.HashAlgo,
 	}
 	dbAccount.Keys = append(dbAccount.Keys, dbKey)
 
 	// Prepare transaction arguments
 	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAccountKey)
 	if kErr != nil {
-					fmt.Println("Error converting account key to cadence crypto key", kErr)
+		fmt.Println("Error converting account key to cadence crypto key", kErr)
 	}
 
 	args := []transactions.Argument{keyAsKeyListEntry}
@@ -551,9 +576,9 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	// Update account in database
 	err = s.store.SaveAccount(&dbAccount)
 	if err != nil {
-			entry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
-			fmt.Println("Error updating account in database", err)
-			return &Account{}, err
+		entry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
+		fmt.Println("Error updating account in database", err)
+		return &Account{}, err
 	}
 
 	fmt.Println("========> Account updated in database", dbAccount)

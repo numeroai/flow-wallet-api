@@ -2,46 +2,45 @@ package main
 
 import (
 	"bytes"
-	"context"
 	j "encoding/json"
-	"errors"
 	"fmt"
 	h "net/http"
 
 	"github.com/google/uuid"
 	"github.com/onflow/flow-go-sdk"
-
-	"github.com/onflow/flow-go-sdk/access/http"
-
-	"github.com/onflow/flow-go-sdk/examples"
 )
 
 func main() {
 	addNewKey()
 }
 
+type ReqBody struct {
+	Address string `json:"address"`
+}
+
+type ResponseBody struct {
+	Address   string `json:"address"`
+	Keys      []Key  `json:"keys"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+type Key struct {
+	Index     int    `json:"index"`
+	Type      string `json:"type"`
+	PublicKey string `json:"publicKey"`
+	SignAlgo  string `json:"signAlgo"`
+	HashAlgo  string `json:"hashAlgo"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
 func addNewKey() {
 	fmt.Println("Running Sync Keys to add new keys to the account")
 
-	ctx := context.Background()
-
-	flowClient, err := http.NewClient(http.EmulatorHost)
-	examples.Handle(err)
-
 	accountAddress := "0xfaaecfd784e1508a"
 	acctAddr := flow.HexToAddress(accountAddress) // this is a flow.Address
-
-	acct, getErr := flowClient.GetAccount(ctx, acctAddr)
-	if getErr != nil {
-		fmt.Println("Error getting account", getErr)
-	}
-
-	currentAcctKey := acct.Keys[0] // may not even need this, flow wallet api
-	fmt.Println("Current account key: ", currentAcctKey)
-
-	type ReqBody struct {
-		Address string `json:"address"`
-	}
 
 	b := ReqBody{Address: acctAddr.Hex()}
 
@@ -73,50 +72,18 @@ func addNewKey() {
 
 	if res.StatusCode != h.StatusCreated {
 		fmt.Println("status code: ", res.StatusCode)
+		return
 	}
-}
+	fmt.Println("status code: ", res.StatusCode)
 
-// Transaction JSON HTTP request
-type TxRequestBody struct {
-	Code      string     `json:"code"`
-	Arguments []Argument `json:"arguments"`
-}
+	var body ResponseBody
+	decodeErr := j.NewDecoder(res.Body).Decode(&body)
+	if decodeErr != nil {
+		fmt.Println("Error decoding response:", decodeErr)
+		return
+	}
 
-type Argument interface{}
+	fmt.Println("Response Body: ", body)
 
-type JobResponse struct {
-	JobId         string   `json:"jobId"`
-	Type          string   `json:"type"`
-	State         string   `json:"state"`
-	Error         string   `json:"error"`
-	Errors        []string `json:"errors"`
-	Result        string   `json:"result"`
-	TransactionId string   `json:"transactionId"`
-	CreatedAt     string   `json:"createdAt"`
-	UpdatedAt     string   `json:"updatedAt"`
-}
 
-type SignedTransactionResponse struct {
-	Code               string                     `json:"code"`
-	Arguments          []Argument                 `json:"arguments"`
-	ReferenceBlockID   string                     `json:"referenceBlockId"`
-	GasLimit           uint64                     `json:"gasLimit"`
-	ProposalKey        ProposalKeyJSON            `json:"proposalKey"`
-	Payer              string                     `json:"payer"`
-	Authorizers        []string                   `json:"authorizers"`
-	PayloadSignatures  []TransactionSignatureJSON `json:"payloadSignatures"`
-	EnvelopeSignatures []TransactionSignatureJSON `json:"envelopeSignatures"`
-}
-
-// are these to json types necessary?
-type ProposalKeyJSON struct {
-	Address        string `json:"address"`
-	KeyIndex       uint32 `json:"keyIndex"`
-	SequenceNumber uint64 `json:"sequenceNumber"`
-}
-
-type TransactionSignatureJSON struct {
-	Address   string `json:"address"`
-	KeyIndex  uint32 `json:"keyIndex"`
-	Signature string `json:"signature"`
 }
