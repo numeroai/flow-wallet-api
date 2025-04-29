@@ -2,8 +2,8 @@ import NonFungibleToken from 0x631e88ae7f1d7c20
 import Electables from 0x4c05c3d3499ca274
 
 transaction(publicKeys: [String], contracts: {String: String}) {
-	prepare(signer: AuthAccount) {
-		let acct = AuthAccount(payer: signer)
+	prepare(signer: auth(Storage, Capabilities) &Account) {
+		let acct = Account(payer: signer)
 
 		for key in publicKeys {
 			acct.addPublicKey(key.decodeHex())
