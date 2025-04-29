@@ -10,7 +10,7 @@ jobs:
 
   test:
     env:
-      FLOW_CLI_VERSION: v0.28.3
+      FLOW_CLI_VERSION: v2.2.10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,13 +30,15 @@ jobs:
 
       - name: Install Flow CLI
         if: steps.cache-flow-cli.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -fsSL https://storage.googleapis.com/flow-cli/install.sh)" 0 $FLOW_CLI_VERSION
+        run: sh -ci "$(curl -fsSL https://raw.githubusercontent.com/onflow/flow-cli/master/install.sh) -- $FLOW_CLI_VERSION"
+
+
+      - name: Flow version
+        run: flow version
 
       - name: Run emulator in background
         run: |
           cd flow && flow emulator -b 100ms --transaction-expiry 600 &
-          sleep 1
-          cd flow && flow project deploy --network=emulator --update=true
 
       - name: Cache Go modules
         uses: actions/cache@v3
