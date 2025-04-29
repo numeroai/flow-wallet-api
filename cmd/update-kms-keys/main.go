@@ -57,10 +57,8 @@ func addNewKey(accountAddress string) {
 		return
 	}
 
-	fmt.Printf("A new key was added to account %s\n", body.Address)
 	newKey := body.Keys[len(body.Keys)-1]
-	fmt.Printf("New Public Key: %s\n", newKey.PublicKey)
-	fmt.Printf("Key Index: %d\n", newKey.Index)
+	fmt.Printf("A new key was added to account: %s\n The new public key is: %s\nWith index %s\\n========", body.Address, newKey.PublicKey, newKey.Index)
 }
 
 type ReqBody struct {

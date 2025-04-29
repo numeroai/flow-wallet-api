@@ -526,13 +526,13 @@ func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address f
 	}
 	dbAccount.Keys = append(dbAccount.Keys, dbKey)
 
-	tx, txErr := s.createNewKeyTx(ctx, logEntry, dbAccount.Address, newAccountKey)
-	if txErr != nil {
-		logEntry.WithFields(log.Fields{"err": txErr, "address": dbAccount.Address}).Error("failed to create transaction")
-		fmt.Println("Error creating transaction", txErr)
-		return &Account{}, txErr
+	addTx, addTxErr := s.createNewKeyTx(ctx, logEntry, dbAccount.Address, newAccountKey)
+	if addTxErr != nil {
+		logEntry.WithFields(log.Fields{"err": addTxErr, "address": dbAccount.Address}).Error("failed to create transaction")
+		fmt.Println("Error creating transaction", addTxErr)
+		return &Account{}, addTxErr
 	}
-	logEntry.WithFields(log.Fields{"txID": tx.TransactionId}).Info("transaction created")
+	logEntry.WithFields(log.Fields{"txID": addTx.TransactionId}).Info("transaction created")
 
 	// Update account in database
 	err = s.store.SaveAccount(&dbAccount)
@@ -541,6 +541,18 @@ func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address f
 		fmt.Println("Error updating account in database", err)
 		return &Account{}, err
 	}
+
+	revokeTx, revokeTxErr := s.revokeOldKey(ctx, logEntry, dbAccount.Address, sourceKey.Index)
+	if revokeTxErr != nil {
+		logEntry.WithFields(log.Fields{"err": revokeTxErr}).Error("failed to revoke old key")
+		fmt.Println("Error revoking old key", revokeTxErr)
+		return &Account{}, revokeTxErr
+	}
+	fmt.Println("Revoke transaction created", revokeTx.TransactionId)
+	fmt.Println("Key revoked: ", sourceKey.Index)
+	logEntry.WithFields(log.Fields{"txID": revokeTx.TransactionId}).Info("revoke transaction created")
+
+	//todo update the db account
 
 	return &dbAccount, nil
 }
@@ -575,9 +587,32 @@ func (s *ServiceImpl) createNewKeyTx(ctx context.Context, logEntry *log.Entry, a
 	args := []transactions.Argument{keyAsKeyListEntry}
 	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
 
-	// Create transaction
+	// Create & send add key transaction
 	code := t.AddAccountKey
 	sync := true
+	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
+
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
+		return &transactions.Transaction{}, err
+	}
+
+	return tx, nil
+}
+
+func (s *ServiceImpl) revokeOldKey(ctx context.Context, logEntry *log.Entry, accountAddress string, oldKeyIndex uint32) (*transactions.Transaction, error) {
+
+	indexAsCadenceValue := cadence.NewInt(int(oldKeyIndex))
+	args := []transactions.Argument{indexAsCadenceValue}
+	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
+
+	// Create transaction
+	code := t.RemoveAccountKey
+	sync := true
+	// this is by default using the 'least recently used key' for the transaction
+	// since we are just creating a new key, that is the one that should be used
+	// flow-wallet-api/keys/basic/keys.go#L165
+	//TODO: is that safe enough? Or should be more explicit?
 	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
 
 	if err != nil {
