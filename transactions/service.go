@@ -13,7 +13,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/keys"
 	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/client"
+	"github.com/onflow/flow-go-sdk/access/grpc"
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc/codes"
 )
@@ -230,7 +230,7 @@ func (s *ServiceImpl) buildFlowTransaction(ctx context.Context, proposerAddress,
 		SetReferenceBlockID(*latestBlockID).
 		SetProposalKey(proposer.Address, proposer.Key.Index, proposer.Key.SequenceNumber).
 		SetPayer(payer.Address).
-		SetGasLimit(maxGasLimit).
+		SetComputeLimit(maxGasLimit).
 		SetScript([]byte(code))
 
 	for _, arg := range arguments {
@@ -316,7 +316,7 @@ func (s *ServiceImpl) sendTransaction(ctx context.Context, tx *Transaction) erro
 	// Check if transaction has been sent already.
 	_, err = s.fc.GetTransaction(ctx, flowTx.ID())
 	if err != nil {
-		rpcErr, ok := err.(client.RPCError)
+		rpcErr, ok := err.(grpc.RPCError)
 		if !ok {
 			// The error wasn't from gRPC.
 			return err

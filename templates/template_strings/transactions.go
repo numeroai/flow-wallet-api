@@ -2,7 +2,7 @@ package template_strings
 
 const AddAccountContractWithAdmin = `
 transaction(name: String, code: String) {
-	prepare(signer: AuthAccount) {
+	prepare(signer: auth(AddContract) &Account) {
 		signer.contracts.add(name: name, code: code.decodeHex(), adminAccount: signer)
 	}
 }
@@ -10,8 +10,9 @@ transaction(name: String, code: String) {
 
 const CreateAccount = `
 transaction(publicKeys: [String]) {
-	prepare(signer: AuthAccount) {
-		let acct = AuthAccount(payer: signer)
+	prepare(signer: auth(BorrowValue) &Account) {
+    let acct = Account(payer: signer)
+
 
 		for key in publicKeys {
 			acct.addPublicKey(key.decodeHex())
@@ -25,11 +26,10 @@ import FungibleToken from "./FungibleToken.cdc"
 import TOKEN_DECLARATION_NAME from TOKEN_ADDRESS
 
 transaction(amount: UFix64, recipient: Address) {
-  let sentVault: @FungibleToken.Vault
+  let sentVault: @{FungibleToken.Vault}
 
-  prepare(signer: AuthAccount) {
-    let vaultRef = signer
-      .borrow<&TOKEN_DECLARATION_NAME.Vault>(from: /storage/TOKEN_VAULT)
+  prepare(signer: auth(BorrowValue) &Account) {
+    let vaultRef = signer.storage.borrow<auth(FungibleToken.Withdraw) &TOKEN_DECLARATION_NAME.Vault>(from: /storage/TOKEN_VAULT)
       ?? panic("failed to borrow reference to sender vault")
 
     self.sentVault <- vaultRef.withdraw(amount: amount)
@@ -37,8 +37,8 @@ transaction(amount: UFix64, recipient: Address) {
 
   execute {
     let receiverRef = getAccount(recipient)
-      .getCapability(/public/TOKEN_RECEIVER)
-      .borrow<&{FungibleToken.Receiver}>()
+      .capabilities
+      .borrow<&{FungibleToken.Receiver}>(/public/TOKEN_RECEIVER)
       ?? panic("failed to borrow reference to recipient vault")
 
     receiverRef.deposit(from: <-self.sentVault)
@@ -51,7 +51,7 @@ import FungibleToken from "./FungibleToken.cdc"
 import TOKEN_DECLARATION_NAME from TOKEN_ADDRESS
 
 transaction {
-  prepare(signer: AuthAccount) {
+  prepare(signer: auth(BorrowValue) &Account) {
 
     let existingVault = signer.borrow<&TOKEN_DECLARATION_NAME.Vault>(from: /storage/TOKEN_VAULT)
 
@@ -61,12 +61,12 @@ transaction {
 
     signer.save(<-TOKEN_DECLARATION_NAME.createEmptyVault(), to: /storage/TOKEN_VAULT)
 
-    signer.link<&TOKEN_DECLARATION_NAME.Vault{FungibleToken.Receiver}>(
+    signer.link<&TOKEN_DECLARATION_NAME.Vault>(
       /public/TOKEN_RECEIVER,
       target: /storage/TOKEN_VAULT
     )
 
-    signer.link<&TOKEN_DECLARATION_NAME.Vault{FungibleToken.Balance}>(
+    signer.link<&TOKEN_DECLARATION_NAME.Vault>(
       /public/TOKEN_BALANCE,
       target: /storage/TOKEN_VAULT
     )
@@ -94,7 +94,7 @@ transaction(adminKeyIndex: Int, numProposalKeys: UInt16) {
 // TODO: sigAlgo & hashAlgo as params, add pre-&post-conditions
 const AddAccountKeysTransaction = `
 transaction(publicKeys: [String]) {
-  prepare(signer: AuthAccount) {
+ 	prepare(signer: auth(AddKey) &Account) {
     for pbk in publicKeys {
       let key = PublicKey(
         publicKey: pbk.decodeHex(),

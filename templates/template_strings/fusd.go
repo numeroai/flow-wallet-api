@@ -194,7 +194,7 @@ pub contract FUSD: FungibleToken {
 
     }
 
-    init(adminAccount: AuthAccount) {
+    init(adminAccount: auth &Account) {
         self.AdminStoragePath = /storage/fusdAdmin
         self.MinterProxyPublicPath = /public/fusdMinterProxy
         self.MinterProxyStoragePath = /storage/fusdMinterProxy
