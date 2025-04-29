@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -335,7 +336,7 @@ func TestJobErrorMessages(t *testing.T) {
 			if j.ExecCount <= retryCount {
 				errorMessage := fmt.Sprintf("error message %d", j.ExecCount)
 				expectedErrorMessages = append(expectedErrorMessages, errorMessage)
-				return fmt.Errorf(errorMessage)
+				return errors.New(errorMessage)
 			}
 
 			j.Result = "done"

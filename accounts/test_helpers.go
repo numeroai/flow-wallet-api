@@ -44,7 +44,7 @@ func AddContract(
 		SetReferenceBlockID(*referenceBlockID).
 		SetProposalKey(proposer.Address, proposer.Key.Index, proposer.Key.SequenceNumber).
 		SetPayer(payer.Address).
-		SetGasLimit(maxGasLimit).
+		SetComputeLimit(maxGasLimit).
 		SetScript([]byte(template_strings.AddAccountContractWithAdmin)).
 		AddAuthorizer(payer.Address)
 

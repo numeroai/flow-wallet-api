@@ -352,24 +352,28 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 	publicKeys := []*flow.AccountKey{}
 
 	// Create copies based on the configured key count, changing just the index
-	for i := 0; i < int(s.cfg.DefaultAccountKeyCount); i++ {
+	for i := uint32(0); i < uint32(s.cfg.DefaultAccountKeyCount); i++ {
 		clonedAccountKey := *accountKey
 		clonedAccountKey.Index = i
 
 		publicKeys = append(publicKeys, &clonedAccountKey)
 	}
 
-	flowTx := flow_templates.CreateAccount(
+	flowTx, flowTxErr := flow_templates.CreateAccount(
 		publicKeys,
 		nil,
 		payer.Address,
 	)
 
+	if err != flowTxErr {
+		return nil, "", err
+	}
+
 	flowTx.
 		SetReferenceBlockID(*referenceBlockID).
 		SetProposalKey(proposer.Address, proposer.Key.Index, proposer.Key.SequenceNumber).
 		SetPayer(payer.Address).
-		SetGasLimit(maxGasLimit)
+		SetComputeLimit(maxGasLimit)
 
 	// Check if we want to use a custom account create script
 	if s.cfg.ScriptPathCreateAccount != "" {

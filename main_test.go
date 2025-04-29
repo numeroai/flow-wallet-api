@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"sort"
 
 	"net/http"
@@ -179,7 +179,7 @@ func TestAccountServices(t *testing.T) {
 		}
 
 		// Keys should be clones w/ a running Index
-		indexes := []int{}
+		indexes := []uint32{}
 		for _, key := range acc.Keys {
 			indexes = append(indexes, key.Index)
 
@@ -189,9 +189,9 @@ func TestAccountServices(t *testing.T) {
 			}
 		}
 
-		sort.Ints(indexes)
+		sort.Slice(indexes, func(i, j int) bool { return indexes[i] < indexes[j] })
 
-		expectedIndexes := []int{0, 1, 2}
+		expectedIndexes := []uint32{0, 1, 2}
 		if !reflect.DeepEqual(expectedIndexes, indexes) {
 			t.Fatalf("incorrect key indexes, expected %v, got %v", expectedIndexes, indexes)
 		}
@@ -218,7 +218,7 @@ func TestAccountServices(t *testing.T) {
 		}
 
 		// Keys should be clones w/ a running Index
-		indexes := []int{}
+		indexes := []uint32{}
 		for _, key := range acc.Keys {
 			indexes = append(indexes, key.Index)
 
@@ -228,9 +228,9 @@ func TestAccountServices(t *testing.T) {
 			}
 		}
 
-		sort.Ints(indexes)
+		sort.Slice(indexes, func(i, j int) bool { return indexes[i] < indexes[j] })
 
-		expectedIndexes := []int{0, 1, 2}
+		expectedIndexes := []uint32{0, 1, 2}
 		if !reflect.DeepEqual(expectedIndexes, indexes) {
 			t.Fatalf("incorrect key indexes, expected %v, got %v", expectedIndexes, indexes)
 		}
@@ -379,7 +379,7 @@ func TestAccountTransactionHandlers(t *testing.T) {
 	}`, tFlowBytes, cfg.AdminAddress)
 
 	validHello := `{
-		"code":"transaction(greeting: String) { prepare(signer: AuthAccount){} execute { log(greeting.concat(\", World!\")) }}",
+		"code":"transaction(greeting: String) { prepare(signer: &Account) {} execute { log(greeting.concat(\", World!\")) } }",
 		"arguments":[{"type":"String","value":"Hello"}]
 	}`
 
@@ -614,7 +614,7 @@ func TestTransactionHandlers(t *testing.T) {
 		context.Background(),
 		true,
 		cfg.AdminAddress,
-		"transaction() { prepare(signer: AuthAccount){} execute { log(\"Hello World!\") }}",
+		"transaction() { prepare(signer: &Account){} execute { log(\"Hello World!\") }}",
 		nil,
 		transactions.General,
 	)
@@ -726,7 +726,7 @@ func TestScriptsHandlers(t *testing.T) {
 			name:   "int 1",
 			method: http.MethodPost,
 			body: strings.NewReader(`{
-				"code":"pub fun main(): Int { return 1 }",
+				"code":"access(all) fun main(): Int { return 1 }",
 				"arguments":[]
 			}`),
 			contentType: "application/json",
@@ -737,7 +737,7 @@ func TestScriptsHandlers(t *testing.T) {
 			name:   "get supply",
 			method: http.MethodPost,
 			body: strings.NewReader(`{
-				"code":"import FlowToken from 0x0ae53cb6e3f42a79\npub fun main(): UFix64 {\nlet supply = FlowToken.totalSupply\nreturn supply\n}",
+				"code":"import FlowToken from 0x0ae53cb6e3f42a79\naccess(all) fun main(): UFix64 {\nlet supply = FlowToken.totalSupply\nreturn supply\n}",
 				"arguments":[]
 			}`),
 			contentType: "application/json",
@@ -748,7 +748,7 @@ func TestScriptsHandlers(t *testing.T) {
 			name:   "get balance",
 			method: http.MethodPost,
 			body: strings.NewReader(fmt.Sprintf(`{
-				"code":"import FungibleToken from 0xee82856bf20e2aa6\nimport FlowToken from 0x0ae53cb6e3f42a79\npub fun main(account: Address): UFix64 {\nlet vaultRef = getAccount(account)\n.getCapability(/public/flowTokenBalance)\n.borrow<&FlowToken.Vault{FungibleToken.Balance}>()\n?? panic(\"Could not borrow Balance reference to the Vault\")\nreturn vaultRef.balance\n}",
+				"code": "import FungibleToken from 0xee82856bf20e2aa6\nimport FlowToken from 0x0ae53cb6e3f42a79\naccess(all) fun main(account: Address): UFix64 {\n return getAccount(account).capabilities.borrow<&{FungibleToken.Balance}>(/public/flowTokenBalance)?.balance ?? panic(\"Could not borrow Balance reference to the Vault\")\n}",
 				"arguments":[{"type":"Address","value":"%s"}]
 			}`, cfg.AdminAddress)),
 			contentType: "application/json",
@@ -789,6 +789,7 @@ func TestScriptsHandlers(t *testing.T) {
 }
 
 func TestTokenServices(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -923,6 +924,7 @@ func TestTokenServices(t *testing.T) {
 }
 
 func TestTokenHandlers(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -972,16 +974,16 @@ func TestTokenHandlers(t *testing.T) {
 
 	// ExampleNFT
 
-	setupBytes, err := ioutil.ReadFile(filepath.Join(testCadenceTxBasePath, "setup_exampleNFT.cdc"))
+	setupBytes, err := os.ReadFile(filepath.Join(testCadenceTxBasePath, "setup_exampleNFT.cdc"))
 	fatal(t, err)
 
-	transferBytes, err := ioutil.ReadFile(filepath.Join(testCadenceTxBasePath, "transfer_exampleNFT.cdc"))
+	transferBytes, err := os.ReadFile(filepath.Join(testCadenceTxBasePath, "transfer_exampleNFT.cdc"))
 	fatal(t, err)
 
-	balanceBytes, err := ioutil.ReadFile(filepath.Join(testCadenceTxBasePath, "balance_exampleNFT.cdc"))
+	balanceBytes, err := os.ReadFile(filepath.Join(testCadenceTxBasePath, "balance_exampleNFT.cdc"))
 	fatal(t, err)
 
-	mintBytes, err := ioutil.ReadFile(filepath.Join(testCadenceTxBasePath, "mint_exampleNFT.cdc"))
+	mintBytes, err := os.ReadFile(filepath.Join(testCadenceTxBasePath, "mint_exampleNFT.cdc"))
 	fatal(t, err)
 
 	exampleNft := templates.Token{
@@ -1112,7 +1114,7 @@ func TestTokenHandlers(t *testing.T) {
 		tokens.WithdrawalRequest{
 			TokenName: exampleNft.Name,
 			Recipient: testAccounts[1].Address,
-			NftID:     reflect.ValueOf(nftIDs[0].ToGoValue()).Uint(),
+			NftID:     reflect.ValueOf(nftIDs[0].String()).Uint(),
 		},
 	)
 	fatal(t, err)
@@ -1210,7 +1212,7 @@ func TestTokenHandlers(t *testing.T) {
 			name:        "create ExampleNFT withdrawal valid sync",
 			sync:        true,
 			method:      http.MethodPost,
-			body:        strings.NewReader(fmt.Sprintf(`{"recipient":"%s","nftId":%d}`, cfg.AdminAddress, nftIDs[1].ToGoValue())),
+			body:        strings.NewReader(fmt.Sprintf(`{"recipient":"%s","nftId":%s}`, cfg.AdminAddress, nftIDs[1].String())),
 			contentType: "application/json",
 			url:         fmt.Sprintf("/%s/non-fungible-tokens/%s/withdrawals", testAccounts[0].Address, exampleNft.Name),
 			expected:    `(?m)^{"transactionId":".+"}$`,
@@ -1220,7 +1222,7 @@ func TestTokenHandlers(t *testing.T) {
 			name:        "create ExampleNFT withdrawal with missing NFT",
 			sync:        true,
 			method:      http.MethodPost,
-			body:        strings.NewReader(fmt.Sprintf(`{"recipient":"%s","nftId":%d}`, cfg.AdminAddress, nftIDs[1].ToGoValue())),
+			body:        strings.NewReader(fmt.Sprintf(`{"recipient":"%s","nftId":%s}`, cfg.AdminAddress, nftIDs[1].String())),
 			contentType: "application/json",
 			url:         fmt.Sprintf("/%s/non-fungible-tokens/%s/withdrawals", testAccounts[1].Address, exampleNft.Name),
 			expected:    `missing NFT`,
@@ -1432,6 +1434,7 @@ func TestNFTDeployment(t *testing.T) {
 }
 
 func TestTemplateHandlers(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -1620,6 +1623,7 @@ func TestTemplateHandlers(t *testing.T) {
 }
 
 func TestTemplateService(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 

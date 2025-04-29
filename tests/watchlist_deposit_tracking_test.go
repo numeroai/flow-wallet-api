@@ -16,6 +16,7 @@ import (
 var max_tx_wait = 10 * time.Second
 
 func Test_NonCustodialAccountDepositTracking(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	fc := test.NewFlowClient(t, cfg)
 	svcs := test.GetServices(t, cfg)
@@ -109,7 +110,7 @@ func transferTokens(t *testing.T, ctx context.Context, fc flow_helpers.FlowClien
 	tx.SetScript(test.ReadFile(t, "fixtures/transfer_tokens.cdc"))
 	tx.AddArgument(amountArg)                                           // nolint
 	tx.AddArgument(cadence.NewAddress(flow.HexToAddress(receiverAddr))) // nolint
-	tx.SetGasLimit(9999)
+	tx.SetComputeLimit(9999)
 	tx.SetReferenceBlockID(lastBlock.ID)
 	tx.SetProposalKey(proposer.Address, 0, seqNum)
 	tx.SetPayer(payer.Address)

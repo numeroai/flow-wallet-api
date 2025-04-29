@@ -67,7 +67,7 @@ func getPublicKey(ctx context.Context, c *cloudkms.Client, k *cloudkms.Key) (*cr
 
 // Generate creates a new asymmetric signing & verification key in Google KMS
 // and returns the required data to use the key with the Flow blockchain
-func Generate(cfg *configs.Config, ctx context.Context, keyIndex, weight int) (*flow.AccountKey, *keys.Private, error) {
+func Generate(cfg *configs.Config, ctx context.Context, keyIndex uint32, weight int) (*flow.AccountKey, *keys.Private, error) {
 	u := uuid.New()
 
 	// Create the new key in Google KMS

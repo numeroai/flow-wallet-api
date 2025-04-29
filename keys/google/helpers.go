@@ -8,7 +8,7 @@ import (
 	"github.com/onflow/flow-go-sdk/crypto/cloudkms"
 
 	kms "cloud.google.com/go/kms/apiv1"
-	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
+	kmspb "cloud.google.com/go/kms/apiv1/kmspb"
 )
 
 // AsymKey creates a new asymmetric signing key in Google KMS and returns

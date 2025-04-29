@@ -9,7 +9,7 @@ import (
 	"github.com/flow-hydraulics/flow-wallet-api/configs"
 	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/client"
+	accessGrpc "github.com/onflow/flow-go-sdk/access/grpc"
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
 	"google.golang.org/grpc"
@@ -25,7 +25,11 @@ var (
 )
 
 func NewFlowClient(t *testing.T, cfg *configs.Config) flow_helpers.FlowClient {
-	fc, err := client.New(cfg.AccessAPIHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	fc, err := accessGrpc.NewBaseClient(
+		cfg.AccessAPIHost,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(cfg.GrpcMaxCallRecvMsgSize)),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +66,10 @@ func NewFlowAccount(t *testing.T, fc flow_helpers.FlowClient, creatorAddress flo
 		SetWeight(flow.AccountKeyWeightThreshold) // Give this key full signing weight
 
 	// Use the templates package to create a new account creation transaction
-	tx := templates.CreateAccount([]*flow.AccountKey{accountKey}, nil, creatorAddress)
+	tx, err := templates.CreateAccount([]*flow.AccountKey{accountKey}, nil, creatorAddress)
+	if err != nil {
+		panic("failed to fetch latest block")
+	}
 
 	// Set the transaction payer and proposal key
 	tx.SetPayer(creatorAddress)

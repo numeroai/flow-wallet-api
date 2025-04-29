@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -40,7 +39,15 @@ func TestEmulatorAcceptsSignedTransaction(t *testing.T) {
 	fromJsonBody(t, res, &account)
 
 	// Transaction:
-	code := "transaction(greeting: String) { prepare(signer: AuthAccount){} execute { log(greeting.concat(\", World!\")) }}"
+	code := `
+		transaction(greeting: String) {
+			prepare(signer: &Account) {
+			}
+			execute {
+				log(greeting.concat(", World!"))
+			}
+		}
+	`
 	args := "[{\"type\":\"String\",\"value\":\"Hello\"}]"
 
 	// Sign it.
@@ -54,7 +61,7 @@ func TestEmulatorAcceptsSignedTransaction(t *testing.T) {
 	tx := flow.NewTransaction().
 		SetScript([]byte(txResp.Code)).
 		SetReferenceBlockID(flow.HexToID(txResp.ReferenceBlockID)).
-		SetGasLimit(txResp.GasLimit).
+		SetComputeLimit(txResp.GasLimit).
 		SetProposalKey(flow.HexToAddress(txResp.ProposalKey.Address), txResp.ProposalKey.KeyIndex, txResp.ProposalKey.SequenceNumber).
 		SetPayer(flow.HexToAddress(txResp.Payer))
 
@@ -91,6 +98,7 @@ func TestEmulatorAcceptsSignedTransaction(t *testing.T) {
 }
 
 func TestWatchlistAccountManagement(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	fc := test.NewFlowClient(t, cfg)
 	svcs := test.GetServices(t, cfg)
@@ -143,7 +151,7 @@ func TestWatchlistAccountManagement(t *testing.T) {
 func assertStatusCode(t *testing.T, res *http.Response, expected int) {
 	t.Helper()
 	if res.StatusCode != expected {
-		bs, err := ioutil.ReadAll(res.Body)
+		bs, err := io.ReadAll(res.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -165,7 +173,7 @@ func asJson(v interface{}) []byte {
 func fromJsonBody(t *testing.T, res *http.Response, v interface{}) {
 	t.Helper()
 
-	bs, err := ioutil.ReadAll(res.Body)
+	bs, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ const GenericFungibleBalance = `
 import FungibleToken from "./FungibleToken.cdc"
 import TOKEN_DECLARATION_NAME from TOKEN_ADDRESS
 
-pub fun main(account: Address): UFix64 {
+access(all) fun main(account: Address): UFix64 {
 
     let vaultRef = getAccount(account)
         .getCapability(/public/TOKEN_BALANCE)

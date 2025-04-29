@@ -32,7 +32,7 @@ type kmsPubKey struct {
 // Generates an asymmetric signing & verification key (ECC_SECG_P256K1 / ECDSA_SHA_256) in AWS KMS
 // and returns data required for account creation; a flow.AccountKey and a private key. The private
 // key has the KMS key ARN as the value.
-func Generate(cfg *configs.Config, ctx context.Context, keyIndex, weight int) (*flow.AccountKey, *keys.Private, error) {
+func Generate(cfg *configs.Config, ctx context.Context, keyIndex uint32, weight int) (*flow.AccountKey, *keys.Private, error) {
 	client := createKMSClient(ctx)
 
 	// Create the new key in AWS KMS
@@ -140,7 +140,10 @@ type AWSSigner struct {
 	client *kms.Client
 	keyId  string
 	hasher crypto.Hasher
+	publicKey crypto.PublicKey
 }
+
+
 
 // SignerForKey returns a new AWSSigner for the given private key
 func SignerForKey(
@@ -155,6 +158,19 @@ func SignerForKey(
 
 	// Get the public key from AWS KMS
 	pbkOutput, err := client.GetPublicKey(ctx, &kms.GetPublicKeyInput{KeyId: aws.String(key.Value)})
+	if err != nil {
+		return nil, err
+	}
+
+
+	sigAlgo := parseSignatureAlgorithm(pbkOutput)
+	publicKeyBytes := pbkOutput.PublicKey
+	block := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+	publicKeyPEM := pem.EncodeToMemory(block)
+	publicKey, err := crypto.DecodePublicKeyPEM(sigAlgo, string(publicKeyPEM))
 
 	if err != nil {
 		return nil, err
@@ -185,6 +201,7 @@ func SignerForKey(
 		client: client,
 		keyId:  key.Value,
 		hasher: hasher,
+		publicKey: publicKey,
 	}, nil
 }
 
@@ -211,6 +228,11 @@ func (s *AWSSigner) Sign(message []byte) ([]byte, error) {
 	}
 
 	return sig, nil
+}
+
+// PublicKey implements crypto.Signer.
+func (s *AWSSigner) PublicKey() crypto.PublicKey {
+	return s.publicKey
 }
 
 func createKMSClient(ctx context.Context) *kms.Client {
