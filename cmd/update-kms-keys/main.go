@@ -18,12 +18,17 @@ func main() {
 		fmt.Println("No account address provided provided")
 		return
 	}
-	address := os.Args[1]
-	fmt.Println("==========================")
-	fmt.Println("Updating account address: ", address)
-	addNewKey(address)
-	revokeOldKey(address, 0)
-	fmt.Println("==========================")
+
+	addresses := os.Args[1:]
+	fmt.Println("Processing ", len(addresses), " addresses")
+
+	for _, address := range addresses {
+		fmt.Println("==========================")
+		fmt.Println("Updating account address: ", address)
+		addNewKey(address)
+		revokeOldKey(address, 0)
+		fmt.Println("==========================")
+	}
 }
 
 func addNewKey(accountAddress string) {
