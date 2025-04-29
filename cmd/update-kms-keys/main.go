@@ -53,7 +53,7 @@ func addNewKey(accountAddress string) {
 	}
 
 	if res.StatusCode != h.StatusCreated {
-		fmt.Println("status code: ", res.StatusCode)
+		fmt.Println("Not expected status code: ", res.StatusCode)
 		return
 	}
 	fmt.Println("Status code: ", res.StatusCode)
@@ -92,11 +92,11 @@ func revokeOldKey(accountAddress string, keyIndex int) {
 		return
 	}
 
-	if res.StatusCode != h.StatusCreated {
-		fmt.Println("status code: ", res.StatusCode)
+	if res.StatusCode != h.StatusOK {
+		fmt.Println("Not expected status code: ", res.StatusCode)
 		return
 	}
-	fmt.Println("Status code: ", res.StatusCode)
+	fmt.Println("Revert status code: ", res.StatusCode)
 
 	var body ResponseBody
 	decodeErr := j.NewDecoder(res.Body).Decode(&body)

@@ -168,5 +168,5 @@ func (s *Accounts) RevokeKeyFunc(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleJsonResponse(rw, http.StatusCreated, acc)	
+	handleJsonResponse(rw, http.StatusOK, acc)	
 }
