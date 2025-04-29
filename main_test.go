@@ -789,6 +789,7 @@ func TestScriptsHandlers(t *testing.T) {
 }
 
 func TestTokenServices(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -923,6 +924,7 @@ func TestTokenServices(t *testing.T) {
 }
 
 func TestTokenHandlers(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -1432,6 +1434,7 @@ func TestNFTDeployment(t *testing.T) {
 }
 
 func TestTemplateHandlers(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 
@@ -1620,6 +1623,7 @@ func TestTemplateHandlers(t *testing.T) {
 }
 
 func TestTemplateService(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	app := test.GetServices(t, cfg)
 

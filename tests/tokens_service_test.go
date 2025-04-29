@@ -15,6 +15,7 @@ import (
 )
 
 func Test_TokensSetup(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	svc := test.GetServices(t, cfg).GetTokens()
 

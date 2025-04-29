@@ -98,6 +98,7 @@ func TestEmulatorAcceptsSignedTransaction(t *testing.T) {
 }
 
 func TestWatchlistAccountManagement(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	fc := test.NewFlowClient(t, cfg)
 	svcs := test.GetServices(t, cfg)

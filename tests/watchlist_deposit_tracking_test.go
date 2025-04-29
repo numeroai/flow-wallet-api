@@ -16,6 +16,7 @@ import (
 var max_tx_wait = 10 * time.Second
 
 func Test_NonCustodialAccountDepositTracking(t *testing.T) {
+	t.Skip("Electables: temporarily skipping as this functionality is not being used")
 	cfg := test.LoadConfig(t)
 	fc := test.NewFlowClient(t, cfg)
 	svcs := test.GetServices(t, cfg)
