@@ -87,10 +87,10 @@ func (s *ServiceImpl) addAdminProposalKeys(ctx context.Context, count uint16) er
 		SetReferenceBlockID(*referenceBlockID).
 		SetProposalKey(payer.Address, payer.Key.Index, payer.Key.SequenceNumber).
 		SetPayer(payer.Address).
-		SetGasLimit(maxGasLimit).
+		SetComputeLimit(maxGasLimit).
 		SetScript([]byte(code))
 
-	if err := flowTx.AddArgument(cadence.NewUInt32(s.cfg.AdminKeyIndex)); err != nil {
+	if err := flowTx.AddArgument(cadence.NewInt(int(s.cfg.AdminKeyIndex))); err != nil {
 		return err
 	}
 

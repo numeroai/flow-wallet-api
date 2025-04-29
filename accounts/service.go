@@ -373,7 +373,7 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 		SetReferenceBlockID(*referenceBlockID).
 		SetProposalKey(proposer.Address, proposer.Key.Index, proposer.Key.SequenceNumber).
 		SetPayer(payer.Address).
-		SetGasLimit(maxGasLimit)
+		SetComputeLimit(maxGasLimit)
 
 	// Check if we want to use a custom account create script
 	if s.cfg.ScriptPathCreateAccount != "" {

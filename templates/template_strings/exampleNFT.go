@@ -7,25 +7,25 @@ const ExampleNFT = `
 
 import NonFungibleToken from "./NonFungibleToken.cdc"
 
-pub contract ExampleNFT: NonFungibleToken {
+access(all) contract ExampleNFT: NonFungibleToken {
 
-    pub var totalSupply: UInt64
+    access(all) var totalSupply: UInt64
 
-    pub event ContractInitialized()
-    pub event Withdraw(id: UInt64, from: Address?)
-    pub event Deposit(id: UInt64, to: Address?)
+    access(all) event ContractInitialized()
+    access(all) event Withdraw(id: UInt64, from: Address?)
+    access(all) event Deposit(id: UInt64, to: Address?)
 
     // Named Paths
     //
-    pub let CollectionStoragePath: StoragePath
-    pub let CollectionPublicPath: PublicPath
-    pub let MinterStoragePath: StoragePath
+    access(all) let CollectionStoragePath: StoragePath
+    access(all) let Collectionaccess(all)licPath: access(all)licPath
+    access(all) let MinterStoragePath: StoragePath
 
 
-    pub resource NFT: NonFungibleToken.INFT {
-        pub let id: UInt64
+    access(all) resource NFT: NonFungibleToken.INFT {
+        access(all) let id: UInt64
 
-        pub var metadata: {String: String}
+        access(all) var metadata: {String: String}
 
         init(initID: UInt64) {
             self.id = initID
@@ -33,17 +33,17 @@ pub contract ExampleNFT: NonFungibleToken {
         }
     }
 
-    pub resource Collection: NonFungibleToken.Provider, NonFungibleToken.Receiver, NonFungibleToken.CollectionPublic {
+    access(all) resource Collection: NonFungibleToken.Provider, NonFungibleToken.Receiver, NonFungibleToken.Collectionaccess(all)lic {
         // dictionary of NFT conforming tokens
         // NFT is a resource type with an 'UInt64' ID field
-        pub var ownedNFTs: @{UInt64: NonFungibleToken.NFT}
+        access(all) var ownedNFTs: @{UInt64: NonFungibleToken.NFT}
 
         init () {
             self.ownedNFTs <- {}
         }
 
         // withdraw removes an NFT from the collection and moves it to the caller
-        pub fun withdraw(withdrawID: UInt64): @NonFungibleToken.NFT {
+        access(all) fun withdraw(withdrawID: UInt64): @NonFungibleToken.NFT {
             let token <- self.ownedNFTs.remove(key: withdrawID) ?? panic("missing NFT")
 
             emit Withdraw(id: token.id, from: self.owner?.address)
@@ -53,7 +53,7 @@ pub contract ExampleNFT: NonFungibleToken {
 
         // deposit takes a NFT and adds it to the collections dictionary
         // and adds the ID to the id array
-        pub fun deposit(token: @NonFungibleToken.NFT) {
+        access(all) fun deposit(token: @NonFungibleToken.NFT) {
             let token <- token as! @ExampleNFT.NFT
 
             let id: UInt64 = token.id
@@ -67,13 +67,13 @@ pub contract ExampleNFT: NonFungibleToken {
         }
 
         // getIDs returns an array of the IDs that are in the collection
-        pub fun getIDs(): [UInt64] {
+        access(all) fun getIDs(): [UInt64] {
             return self.ownedNFTs.keys
         }
 
         // borrowNFT gets a reference to an NFT in the collection
         // so that the caller can read its metadata and call its methods
-        pub fun borrowNFT(id: UInt64): &NonFungibleToken.NFT {
+        access(all) fun borrowNFT(id: UInt64): &NonFungibleToken.NFT {
             return &self.ownedNFTs[id] as &NonFungibleToken.NFT
         }
 
@@ -82,19 +82,19 @@ pub contract ExampleNFT: NonFungibleToken {
         }
     }
 
-    // public function that anyone can call to create a new empty collection
-    pub fun createEmptyCollection(): @NonFungibleToken.Collection {
+    // access(all)lic function that anyone can call to create a new empty collection
+    access(all) fun createEmptyCollection(): @NonFungibleToken.Collection {
         return <- create Collection()
     }
 
     // Resource that an admin or something similar would own to be
     // able to mint new NFTs
     //
-    pub resource NFTMinter {
+    access(all) resource NFTMinter {
 
         // mintNFT mints a new NFT with a new ID
         // and deposit it in the recipients collection using their collection reference
-        pub fun mintNFT(recipient: &{NonFungibleToken.CollectionPublic}) {
+        access(all) fun mintNFT(recipient: &{NonFungibleToken.Collectionaccess(all)lic}) {
 
             // create a new NFT
             var newNFT <- create NFT(initID: ExampleNFT.totalSupply)
@@ -109,7 +109,7 @@ pub contract ExampleNFT: NonFungibleToken {
     init() {
         // Set our named paths
         self.CollectionStoragePath = /storage/exampleNFTCollection
-        self.CollectionPublicPath = /public/exampleNFTCollection
+        self.Collectionaccess(all)licPath = /access(all)lic/exampleNFTCollection
         self.MinterStoragePath = /storage/exampleNFTMinter
 
         // Initialize the total supply
@@ -119,9 +119,9 @@ pub contract ExampleNFT: NonFungibleToken {
         let collection <- create Collection()
         self.account.save(<-collection, to: self.CollectionStoragePath)
 
-        // create a public capability for the collection
-        self.account.link<&{NonFungibleToken.CollectionPublic}>(
-            self.CollectionPublicPath,
+        // create a access(all)lic capability for the collection
+        self.account.link<&{NonFungibleToken.Collectionaccess(all)lic}>(
+            self.Collectionaccess(all)licPath,
             target: self.CollectionStoragePath
         )
 
