@@ -1,6 +1,11 @@
 # Numero Fork of Flow Wallet API
 This is a fork of [flow-hydraulics/flow-wallet-api](https://github.com/flow-hydraulics/flow-wallet-api) which was forked so that we could manage deployment and customize configuration specifically for Electables.
 
+## Upgrade Notes
+- This code base was updated to use the flow-go-sdk version that is compatible with Cadence 1.0+. 
+- Since we were mainly using this code base for account creation and transaction signing, that is where a majority of the attention has been paid during this upgrade. In other words, please be sure to thoroughly endpoints other than creating an account (POST to `/accounts`), signing a raw transaction (POST to `/accounts/{address}/sign`) and sending a raw transaction (POST to `/accounts/{address}/transactions`).
+- It would be beneficial for long-term maintainability to remove the components of this code base that are not being used. Or, to rewrite this code base to rely more directly on the flow-go-sdk. It seems like a lot of the functionality that was created for this code base has now been brought into the sdk directly, at least in part. This will likely create a way simpler code base to interact with, upgrade and maintain. 
+
 ## Running Locally
 
 1. It is recommended to run the `flow-wallet-api` locally via Docker Compose, so make sure you've installed Docker and Docker Compose. You can install both by downloading [Docker Desktop](https://docs.docker.com/get-docker/).
