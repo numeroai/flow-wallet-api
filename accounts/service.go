@@ -36,6 +36,7 @@ type Service interface {
 	Details(address string) (Account, error)
 	InitAdminAccount(ctx context.Context) error
 	AddNewKey(ctx context.Context, address flow.Address) (*Account, error)
+	RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error)
 }
 
 // ServiceImpl defines the API for account management.
@@ -542,19 +543,54 @@ func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address f
 		return &Account{}, err
 	}
 
-	revokeTx, revokeTxErr := s.revokeOldKey(ctx, logEntry, dbAccount.Address, sourceKey.Index)
+	return &dbAccount, nil
+}
+
+func (s *ServiceImpl) RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error) {
+	fmt.Println("RevokeKey called")
+	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.RevokeKey"})
+
+	account, err := s.revokeKey(ctx, entry, address, oldKeyIndex)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to revoke key")
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, address flow.Address, oldKeyIndex uint32) (*Account, error) {
+	// Get stored account
+	dbAccount, err := s.store.Account(flow_helpers.FormatAddress(address))
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
+		fmt.Println("Error fetching account from database", err)
+		return &Account{}, err
+	}
+
+	var indexFound bool
+	for _, key := range dbAccount.Keys {
+		if key.Index == oldKeyIndex {
+			indexFound = true
+		}
+	}
+
+	if !indexFound {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to find key index in database")
+		return &Account{}, fmt.Errorf("failed to find key %d index in database for account %s ", oldKeyIndex, dbAccount.Address)
+	}
+
+	revokeTx, revokeTxErr := s.createRevokeKeyTx(ctx, logEntry, dbAccount.Address, oldKeyIndex)
 	if revokeTxErr != nil {
-		logEntry.WithFields(log.Fields{"err": revokeTxErr}).Error("failed to revoke old key")
-		fmt.Println("Error revoking old key", revokeTxErr)
+		logEntry.WithFields(log.Fields{"err": revokeTxErr}).Error("failed to create transaction")
+		fmt.Println("Error creating transaction", revokeTxErr)
 		return &Account{}, revokeTxErr
 	}
-	fmt.Println("Revoke transaction created", revokeTx.TransactionId)
-	fmt.Println("Key revoked: ", sourceKey.Index)
-	logEntry.WithFields(log.Fields{"txID": revokeTx.TransactionId}).Info("revoke transaction created")
-
-	//todo update the db account
+	logEntry.WithFields(log.Fields{"txID": revokeTx.TransactionId}).Info("transaction created")
 
 	return &dbAccount, nil
+	//todo update the db account
+
 }
 
 // getNextIndex calculates the next key index for the given account based on the number of keys for that account onchain. Though this will probably not be an issue in production, in test data there are keys missing from the db that are on the chain and this causes some mismatches in indexes. So this approach should be more accurate.
@@ -600,7 +636,7 @@ func (s *ServiceImpl) createNewKeyTx(ctx context.Context, logEntry *log.Entry, a
 	return tx, nil
 }
 
-func (s *ServiceImpl) revokeOldKey(ctx context.Context, logEntry *log.Entry, accountAddress string, oldKeyIndex uint32) (*transactions.Transaction, error) {
+func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry, accountAddress string, oldKeyIndex uint32) (*transactions.Transaction, error) {
 
 	indexAsCadenceValue := cadence.NewInt(int(oldKeyIndex))
 	args := []transactions.Argument{indexAsCadenceValue}
@@ -612,7 +648,7 @@ func (s *ServiceImpl) revokeOldKey(ctx context.Context, logEntry *log.Entry, acc
 	// this is by default using the 'least recently used key' for the transaction
 	// since we are just creating a new key, that is the one that should be used
 	// flow-wallet-api/keys/basic/keys.go#L165
-	//TODO: is that safe enough? Or should be more explicit?
+	//TODO: is that safe enough? Or should it be more explicit?
 	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
 
 	if err != nil {

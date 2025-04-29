@@ -151,3 +151,22 @@ func (s *Accounts) AddNewKeyFunc(rw http.ResponseWriter, r *http.Request) {
 
 	handleJsonResponse(rw, http.StatusCreated, acc)	
 }
+
+// this is synchronous for now - make it async to be consistent with the rest
+func (s *Accounts) RevokeKeyFunc(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	address := flow.HexToAddress(vars["address"])
+	key, err := strconv.Atoi(vars["index"])
+	if err != nil {
+		handleError(rw, r, err)
+	}
+	acc, err := s.service.RevokeKey(r.Context(), address, uint32(key))
+
+	if err != nil {
+		handleError(rw, r, err)
+		return
+	}
+
+	handleJsonResponse(rw, http.StatusCreated, acc)	
+}
