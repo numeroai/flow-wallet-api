@@ -458,60 +458,46 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	fmt.Println("AddNewKey called")
 	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
 
+	account, err := s.addKey(ctx, entry, address)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to add new key")
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address flow.Address) (*Account, error) {
 	// Get stored account
 	dbAccount, err := s.store.Account(flow_helpers.FormatAddress(address))
+
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
 		fmt.Println("Error fetching account from database", err)
 		return &Account{}, err
 	}
 
-	// acctKeys := dbAccount.Keys
-	// Sort keys by index
+	// Get the first existing key to use as the source of the tx
 	sort.SliceStable(dbAccount.Keys, func(i, j int) bool {
 		return dbAccount.Keys[i].Index < dbAccount.Keys[j].Index
 	})
-
-	// entry.WithFields(log.Fields{"dbAccount keys": dbAccount.Keys}).Debug("account fetched from db")
-
-	// Get flow account from client
-	flowAccount, err := s.fc.GetAccount(ctx, address)
-	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
-		return &Account{}, err
-	}
-	fmt.Println("========> Flow account fetched from client, number of keys", len(flowAccount.Keys))
-
-	// Get the existing key to use as the source of the tx
 	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
-
 	sourceKeyPbkString := strings.TrimPrefix(sourceKey.PublicKey, "0x")
 	_, err = flow_crypto.DecodePublicKeyHex(flow_crypto.StringToSignatureAlgorithm(sourceKey.SignAlgo), sourceKeyPbkString)
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err, "sourceKeyPbkString": sourceKeyPbkString}).Error("failed to decode public key for source key")
+		logEntry.WithFields(log.Fields{"err": err, "sourceKeyPbkString": sourceKeyPbkString}).Error("failed to decode public key for source key")
 		fmt.Println("Error decoding public key for source key", err)
 		return &Account{}, err
 	}
-	entry.WithFields(log.Fields{"sourceKeyPbkString": sourceKeyPbkString}).Debug("source key selected")
+	logEntry.WithFields(log.Fields{"sourceKeyPbkString": sourceKeyPbkString}).Debug("source key selected")
 
 	// Generate a new key pair
 	newAccountKey, newPrivateKey, err := s.km.GenerateDefault(ctx)
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to generate new key")
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to generate new key")
 		fmt.Println("Error generating default key", err)
 		return &Account{}, err
 	}
-
-	// Get the next index and create a private key
-	flowAccountKeys := flowAccount.Keys
-	sort.SliceStable(flowAccountKeys, func(i, j int) bool {
-		return flowAccountKeys[i].Index < flowAccountKeys[j].Index
-	})
-
-	// calculating next index based on the number of keys on the chain
-	// though it probably won't be an issue in production, but in test data there are keys missing from the db that are on the chain
-	// and this causes some mismatches in indexes
-	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
 
 	// Convert the key to storable form (encrypt it)
 	encryptedAccountKey, err := s.km.Save(*newPrivateKey)
@@ -519,6 +505,14 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 		return &Account{}, err
 	}
 	encryptedAccountKey.PublicKey = newAccountKey.PublicKey.String()
+
+	// Get the next index for the new key
+	nextIndex, err := s.getNextIndex(ctx, logEntry, address)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get next index")
+		fmt.Println("Error getting next index", err)
+		return &Account{}, err
+	}
 
 	dbKey := keys.Storable{
 		ID:             0, // Reset ID to create a new key to DB
@@ -532,31 +526,18 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	}
 	dbAccount.Keys = append(dbAccount.Keys, dbKey)
 
-	// Prepare transaction arguments
-	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAccountKey)
-	if kErr != nil {
-		fmt.Println("Error converting account key to cadence crypto key", kErr)
+	tx, txErr := s.createNewKeyTx(ctx, logEntry, dbAccount.Address, newAccountKey)
+	if txErr != nil {
+		logEntry.WithFields(log.Fields{"err": txErr, "address": dbAccount.Address}).Error("failed to create transaction")
+		fmt.Println("Error creating transaction", txErr)
+		return &Account{}, txErr
 	}
-
-	args := []transactions.Argument{keyAsKeyListEntry}
-	entry.WithFields(log.Fields{"args": args}).Info("args prepared")
-
-	// Prepare transaction
-	code := t.AddAccountKey
-	sync := true
-	_, tx, err := s.txs.Create(ctx, sync, dbAccount.Address, code, args, transactions.General)
-
-	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
-		return &Account{}, err
-	}
-
-	entry.WithFields(log.Fields{"txID": tx.TransactionId}).Info("transaction created")
+	logEntry.WithFields(log.Fields{"txID": tx.TransactionId}).Info("transaction created")
 
 	// Update account in database
 	err = s.store.SaveAccount(&dbAccount)
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
 		fmt.Println("Error updating account in database", err)
 		return &Account{}, err
 	}
@@ -564,6 +545,48 @@ func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Acc
 	return &dbAccount, nil
 }
 
+// getNextIndex calculates the next key index for the given account based on the number of keys for that account onchain. Though this will probably not be an issue in production, in test data there are keys missing from the db that are on the chain and this causes some mismatches in indexes. So this approach should be more accurate.
+func (s *ServiceImpl) getNextIndex(ctx context.Context, logEntry *log.Entry, address flow.Address) (uint32, error) {
+	// Get flow account from client
+	flowAccount, err := s.fc.GetAccount(ctx, address)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
+		return 0, err
+	}
+
+	flowAccountKeys := flowAccount.Keys
+	sort.SliceStable(flowAccountKeys, func(i, j int) bool {
+		return flowAccountKeys[i].Index < flowAccountKeys[j].Index
+	})
+
+	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
+	return nextIndex, nil
+}
+
+func (s *ServiceImpl) createNewKeyTx(ctx context.Context, logEntry *log.Entry, accountAddress string, newAccountKey *flow.AccountKey) (*transactions.Transaction, error) {
+
+	// Prepare transaction arguments
+	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAccountKey)
+	if kErr != nil {
+		fmt.Println("Error converting account key to cadence crypto key", kErr)
+		return nil, kErr
+	}
+
+	args := []transactions.Argument{keyAsKeyListEntry}
+	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
+
+	// Create transaction
+	code := t.AddAccountKey
+	sync := true
+	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
+
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
+		return &transactions.Transaction{}, err
+	}
+
+	return tx, nil
+}
 
 // next steps :
 //  - use the new key to revoke access for the old key
