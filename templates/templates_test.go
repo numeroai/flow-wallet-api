@@ -41,7 +41,7 @@ func TestParsing(t *testing.T) {
 				import ExampleNFT from "../contracts/ExampleNFT.cdc"
 
 				transaction(recipient: Address, withdrawID: UInt64) {
-						prepare(signer: AuthAccount) {
+						prepare(signer: auth(BorrowValue) &Account) {
 								// get the recipients public account object
 								let recipient = getAccount(recipient)
 
