@@ -48,7 +48,7 @@ type Manager interface {
 // or resource id when using a remote key management system (e.g. Google KMS).
 type Storable struct {
 	ID             int            `json:"-" gorm:"primaryKey"`
-	AccountAddress string         `json:"-" gorm:"index"`
+	AccountAddress string         `json:"accountAddress" gorm:"index"`
 	Index          uint32         `json:"index" gorm:"index"`
 	Type           string         `json:"type"`
 	Value          []byte         `json:"-"`

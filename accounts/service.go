@@ -18,7 +18,9 @@ import (
 	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go-sdk"
 	flow_crypto "github.com/onflow/flow-go-sdk/crypto"
+	"github.com/onflow/flow-go-sdk/templates"
 	flow_templates "github.com/onflow/flow-go-sdk/templates"
+	t "github.com/onflow/sdks"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/ratelimit"
 )
@@ -33,6 +35,9 @@ type Service interface {
 	SyncAccountKeyCount(ctx context.Context, address flow.Address) (*jobs.Job, error)
 	Details(address string) (Account, error)
 	InitAdminAccount(ctx context.Context) error
+	AddNewKey(ctx context.Context, address flow.Address) (*Account, error)
+	RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error)
+	GetKeysByType(ctx context.Context, keyType string) ([]keys.Storable, error)
 }
 
 // ServiceImpl defines the API for account management.
@@ -448,4 +453,227 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 	log.WithFields(log.Fields{"address": account.Address}).Debug("Account created")
 
 	return account, flowTx.ID().String(), nil
+}
+
+// AddNewKey adds a new key to the given account
+func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Account, error) {
+	fmt.Println("AddNewKey called")
+	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
+
+	account, err := s.addKey(ctx, entry, address)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to add new key")
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address flow.Address) (*Account, error) {
+	// Get stored account
+	dbAccount, err := s.store.Account(flow_helpers.FormatAddress(address))
+
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
+		fmt.Println("Error fetching account from database", err)
+		return &Account{}, err
+	}
+
+	// Get the first existing key to use as the source of the tx
+	sort.SliceStable(dbAccount.Keys, func(i, j int) bool {
+		return dbAccount.Keys[i].Index < dbAccount.Keys[j].Index
+	})
+	sourceKey := dbAccount.Keys[0] // NOTE: Only valid (not revoked) keys should be stored in the database
+	sourceKeyPbkString := strings.TrimPrefix(sourceKey.PublicKey, "0x")
+	_, err = flow_crypto.DecodePublicKeyHex(flow_crypto.StringToSignatureAlgorithm(sourceKey.SignAlgo), sourceKeyPbkString)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err, "sourceKeyPbkString": sourceKeyPbkString}).Error("failed to decode public key for source key")
+		fmt.Println("Error decoding public key for source key", err)
+		return &Account{}, err
+	}
+	logEntry.WithFields(log.Fields{"sourceKeyPbkString": sourceKeyPbkString}).Debug("source key selected")
+
+	// Generate a new key pair
+	newAccountKey, newPrivateKey, err := s.km.GenerateDefault(ctx)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to generate new key")
+		fmt.Println("Error generating default key", err)
+		return &Account{}, err
+	}
+
+	// Convert the key to storable form (encrypt it)
+	encryptedAccountKey, err := s.km.Save(*newPrivateKey)
+	if err != nil {
+		return &Account{}, err
+	}
+	encryptedAccountKey.PublicKey = newAccountKey.PublicKey.String()
+
+	// Get the next index for the new key
+	nextIndex, err := s.getNextIndex(ctx, logEntry, address)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get next index")
+		fmt.Println("Error getting next index", err)
+		return &Account{}, err
+	}
+
+	dbKey := keys.Storable{
+		ID:             0, // Reset ID to create a new key to DB
+		AccountAddress: dbAccount.Address,
+		Index:          nextIndex,
+		Type:           "local",
+		Value:          encryptedAccountKey.Value,
+		PublicKey:      encryptedAccountKey.PublicKey,
+		SignAlgo:       encryptedAccountKey.SignAlgo,
+		HashAlgo:       encryptedAccountKey.HashAlgo,
+	}
+	dbAccount.Keys = append(dbAccount.Keys, dbKey)
+
+	addTx, addTxErr := s.createNewKeyTx(ctx, logEntry, dbAccount.Address, newAccountKey)
+	if addTxErr != nil {
+		logEntry.WithFields(log.Fields{"err": addTxErr, "address": dbAccount.Address}).Error("failed to create transaction")
+		fmt.Println("Error creating transaction", addTxErr)
+		return &Account{}, addTxErr
+	}
+	logEntry.WithFields(log.Fields{"txID": addTx.TransactionId}).Info("transaction created")
+
+	// Update account in database
+	err = s.store.SaveAccount(&dbAccount)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to update account in database")
+		fmt.Println("Error updating account in database", err)
+		return &Account{}, err
+	}
+
+	return &dbAccount, nil
+}
+
+func (s *ServiceImpl) RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error) {
+	fmt.Println("RevokeKey called")
+	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.RevokeKey"})
+
+	account, err := s.revokeKey(ctx, entry, address, oldKeyIndex)
+	if err != nil {
+		entry.WithFields(log.Fields{"err": err}).Error("failed to revoke key")
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, address flow.Address, oldKeyIndex uint32) (*Account, error) {
+	// Get stored account
+	dbAccount, err := s.store.Account(flow_helpers.FormatAddress(address))
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get account from database")
+		fmt.Println("Error fetching account from database", err)
+		return &Account{}, err
+	}
+
+	if len(dbAccount.Keys) == 1 {
+		return nil, fmt.Errorf("account %s only has one key, cannot revoke", dbAccount.Address)
+	}
+
+	var indexFound bool
+	var keyToDelete *keys.Storable
+	for _, key := range dbAccount.Keys {
+		if key.Index == oldKeyIndex {
+			indexFound = true
+			keyToDelete = &key
+		}
+	}
+
+	if !indexFound {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to find key index in database")
+		return &Account{}, fmt.Errorf("failed to find key %d index in database for account %s ", oldKeyIndex, dbAccount.Address)
+	}
+
+	revokeTx, revokeTxErr := s.createRevokeKeyTx(ctx, logEntry, dbAccount.Address, oldKeyIndex)
+	if revokeTxErr != nil {
+		logEntry.WithFields(log.Fields{"err": revokeTxErr}).Error("failed to create transaction")
+		fmt.Println("Error creating transaction", revokeTxErr)
+		return &Account{}, revokeTxErr
+	}
+	logEntry.WithFields(log.Fields{"txID": revokeTx.TransactionId}).Info("transaction created")
+
+	// Remove the old key from the db
+	err = s.store.DeleteKeyForAccount(&dbAccount, keyToDelete)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to delete key from database")
+		fmt.Println("Error deleting key from database", err)
+		return &Account{}, err
+	}
+
+	return &dbAccount, nil
+}
+
+// getNextIndex calculates the next key index for the given account based on the number of keys for that account onchain. Though this will probably not be an issue in production, in test data there are keys missing from the db that are on the chain and this causes some mismatches in indexes. So this approach should be more accurate.
+func (s *ServiceImpl) getNextIndex(ctx context.Context, logEntry *log.Entry, address flow.Address) (uint32, error) {
+	// Get flow account from client
+	flowAccount, err := s.fc.GetAccount(ctx, address)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to get Flow account")
+		return 0, err
+	}
+
+	flowAccountKeys := flowAccount.Keys
+	sort.SliceStable(flowAccountKeys, func(i, j int) bool {
+		return flowAccountKeys[i].Index < flowAccountKeys[j].Index
+	})
+
+	nextIndex := flowAccount.Keys[len(flowAccount.Keys)-1].Index + 1
+	return nextIndex, nil
+}
+
+func (s *ServiceImpl) createNewKeyTx(ctx context.Context, logEntry *log.Entry, accountAddress string, newAccountKey *flow.AccountKey) (*transactions.Transaction, error) {
+
+	// Prepare transaction arguments
+	keyAsKeyListEntry, kErr := templates.AccountKeyToCadenceCryptoKey(newAccountKey)
+	if kErr != nil {
+		fmt.Println("Error converting account key to cadence crypto key", kErr)
+		return nil, kErr
+	}
+
+	args := []transactions.Argument{keyAsKeyListEntry}
+	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
+
+	// Create & send add key transaction
+	code := t.AddAccountKey
+	sync := true
+	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
+
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
+		return &transactions.Transaction{}, err
+	}
+
+	return tx, nil
+}
+
+func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry, accountAddress string, oldKeyIndex uint32) (*transactions.Transaction, error) {
+	indexAsCadenceValue := cadence.NewInt(int(oldKeyIndex))
+	args := []transactions.Argument{indexAsCadenceValue}
+	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
+
+	// Create transaction
+	code := t.RemoveAccountKey
+	sync := true
+	// this is by default using the 'least recently used key' for the transaction
+	// since we are just creating a new key, that is the one that should be used
+	// flow-wallet-api/keys/basic/keys.go#L165
+	// FIXME: make this more explicit about which key is signing the revoke tx
+	// it is possible that it will use the key that is being revoked, which could mean that the tx fails
+	// if the tx is tried again, it will work, since that key is no longer the 'least recently used' key
+	// but this is confusing and not ideal
+	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
+
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to create transaction")
+		return &transactions.Transaction{}, err
+	}
+
+	return tx, nil
+}
+
+func (s *ServiceImpl) GetKeysByType(ctx context.Context, keyType string) ([]keys.Storable, error) {
+	return s.store.GetKeysByType(keyType)
 }

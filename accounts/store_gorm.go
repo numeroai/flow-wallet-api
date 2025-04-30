@@ -1,7 +1,10 @@
 package accounts
 
 import (
+	"fmt"
+
 	"github.com/flow-hydraulics/flow-wallet-api/datastore"
+	"github.com/flow-hydraulics/flow-wallet-api/keys"
 	"gorm.io/gorm"
 )
 
@@ -37,4 +40,20 @@ func (s *GormStore) SaveAccount(a *Account) error {
 
 func (s *GormStore) HardDeleteAccount(a *Account) error {
 	return s.db.Unscoped().Delete(a).Error
+}
+
+func (s *GormStore) DeleteKeyForAccount(a *Account, key *keys.Storable) error {
+	if key.AccountAddress != a.Address {
+		return fmt.Errorf("key does not belong to the given account")
+	}
+
+	return s.db.
+		Where("account_address = ? AND id = ?", a.Address, key.ID).
+		Delete(&keys.Storable{}).
+		Error
+}
+
+func (s *GormStore) GetKeysByType(keyType string) ([]keys.Storable, error) {
+	var keys []keys.Storable
+	return keys, s.db.Where("type = ?", keyType).Find(&keys).Error
 }

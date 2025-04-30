@@ -191,9 +191,12 @@ func runServer(cfg *configs.Config) {
 	rv.Handle("/transactions/{transactionId}", transactionHandler.Details()).Methods(http.MethodGet) // details
 
 	// Account
-	rv.Handle("/accounts", accountHandler.List()).Methods(http.MethodGet)              // list
-	rv.Handle("/accounts", accountHandler.Create()).Methods(http.MethodPost)           // create
-	rv.Handle("/accounts/{address}", accountHandler.Details()).Methods(http.MethodGet) // details
+	rv.Handle("/accounts", accountHandler.List()).Methods(http.MethodGet)                                    // list
+	rv.Handle("/accounts", accountHandler.Create()).Methods(http.MethodPost)                                 // create
+	rv.Handle("/accounts/{address}", accountHandler.Details()).Methods(http.MethodGet)                       // details
+	rv.Handle("/accounts/{address}/add-new-key", accountHandler.AddNewKey()).Methods(http.MethodPost)        // add new key
+	rv.Handle("/accounts/{address}/revoke-key/{index}", accountHandler.RevokeKey()).Methods(http.MethodPost) // add new key
+	rv.Handle("/get-keys/{type}", accountHandler.GetKeysByType()).Methods(http.MethodGet) // add new key
 
 	// Account raw transactions
 	if !cfg.DisableRawTransactions {

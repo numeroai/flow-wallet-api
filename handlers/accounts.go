@@ -47,3 +47,15 @@ func (s *Accounts) SyncAccountKeyCount() http.Handler {
 func (s *Accounts) Details() http.Handler {
 	return http.HandlerFunc(s.DetailsFunc)
 }
+
+func (s *Accounts) AddNewKey() http.Handler {
+	return http.HandlerFunc(s.AddNewKeyFunc)
+}
+
+func (s *Accounts) RevokeKey() http.Handler {
+	return http.HandlerFunc(s.RevokeKeyFunc)
+}
+
+func (s *Accounts) GetKeysByType() http.Handler {
+	return http.HandlerFunc(s.GetKeysByTypeFunc)
+}
