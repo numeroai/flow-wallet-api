@@ -13,22 +13,86 @@ import (
 
 // 0xfaaecfd784e1508a
 func main() {
+
 	args := os.Args
-	if args == nil || len(args) < 2 {
-		fmt.Println("No account address provided provided")
+	fmt.Println("Args: ", args)
+	if len(args) == 1 {
+		fmt.Println("Accepted arguments: all, get-keys, with-addresses")
 		return
 	}
 
-	addresses := os.Args[1:]
-	fmt.Println("Processing ", len(addresses), " addresses")
+	if args[1] == "get-keys" {
+		fmt.Println("Getting keys")
+		getAwsKeys()
+		return
+	} else if args[1] == "all" {
+		fmt.Println("Updating all aws keys")
+		awsKeys := getAwsKeys()
+		if len(awsKeys) == 0 {
+			fmt.Println("No keys found")
+			return
+		}
 
-	for _, address := range addresses {
-		fmt.Println("==========================")
-		fmt.Println("Updating account address: ", address)
-		addNewKey(address)
-		revokeOldKey(address, 0)
-		fmt.Println("==========================")
+		for _, key := range awsKeys {
+			address := key.AccountAddress
+			fmt.Println("==========================")
+			fmt.Println("Updating account address: ", address)
+			addNewKey(address)
+			revokeOldKey(address, 0)
+			fmt.Println("==========================")
+		}
+	} else if args[1] == "with-addresses" {
+		if len(args) == 2 {
+			fmt.Println("Please provide at least one address")
+			return
+		}
+
+		addresses := os.Args[2:]
+		fmt.Println("Processing ", len(addresses), " addresses")
+
+		for _, address := range addresses {
+			fmt.Println("==========================")
+			fmt.Println("Updating account address: ", address)
+			addNewKey(address)
+			revokeOldKey(address, 0)
+			fmt.Println("==========================")
+		}
+		return
 	}
+}
+
+func getAwsKeys() []StorableKey {
+	fmt.Println("Getting AWS keys")
+	req, reqErr := h.NewRequest("GET", "http://localhost:3005/v1/get-keys/local", nil)
+	if reqErr != nil {
+		fmt.Println("Error:", reqErr)
+		return []StorableKey{}
+	}
+	httpClient := &h.Client{}
+	res, resErr := httpClient.Do(req)
+	if resErr != nil {
+		fmt.Println("Error sending http request:", reqErr)
+		return []StorableKey{}
+	}
+	if res.StatusCode != h.StatusOK {
+		fmt.Println("Not expected status code: ", res.StatusCode)
+		return []StorableKey{}
+	}
+	fmt.Println("Status code: ", res.StatusCode)
+
+	var body []StorableKey
+	decodeErr := j.NewDecoder(res.Body).Decode(&body)
+	if decodeErr != nil {
+		fmt.Println("Error decoding response:", decodeErr)
+		return []StorableKey{}
+	}
+
+	fmt.Println("Keys: ", len(body))
+	fmt.Println("==========================")
+	for _, key := range body {
+		fmt.Println("Index: ", key.Index, "Address: ", key.AccountAddress)
+	}
+	return body
 }
 
 func addNewKey(accountAddress string) {
@@ -129,4 +193,22 @@ type Key struct {
 	HashAlgo  string `json:"hashAlgo"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
+}
+
+type KeyResponseBody struct {
+	Keys []StorableKey `json:"keys"`
+}
+
+type StorableKey struct {
+	ID             int    `json:"id"`
+	AccountAddress string `json:"accountAddress"`
+	Index          int    `json:"index"`
+	Type           string `json:"type"`
+	Value          string `json:"value"`
+	SignAlgo       string `json:"signAlgo"`
+	HashAlgo       string `json:"hashAlgo"`
+	CreatedAt      string `json:"createdAt"`
+	UpdatedAt      string `json:"updatedAt"`
+	DeletedAt      string `json:"deletedAt"`
+	PublicKey      string `json:"publicKey"`
 }
