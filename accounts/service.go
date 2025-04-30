@@ -568,10 +568,16 @@ func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, addres
 		return &Account{}, err
 	}
 
+	if len(dbAccount.Keys) == 1 {
+		return nil, fmt.Errorf("account %s only has one key, cannot revoke", dbAccount.Address)
+	}
+
 	var indexFound bool
+	var keyToDelete *keys.Storable
 	for _, key := range dbAccount.Keys {
 		if key.Index == oldKeyIndex {
 			indexFound = true
+			keyToDelete = &key
 		}
 	}
 
@@ -588,9 +594,15 @@ func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, addres
 	}
 	logEntry.WithFields(log.Fields{"txID": revokeTx.TransactionId}).Info("transaction created")
 
-	return &dbAccount, nil
-	//todo update the db account
+	// Remove the old key from the db
+	err = s.store.DeleteKeyForAccount(&dbAccount, keyToDelete)
+	if err != nil {
+		logEntry.WithFields(log.Fields{"err": err}).Error("failed to delete key from database")
+		fmt.Println("Error deleting key from database", err)
+		return &Account{}, err
+	}
 
+	return &dbAccount, nil
 }
 
 // getNextIndex calculates the next key index for the given account based on the number of keys for that account onchain. Though this will probably not be an issue in production, in test data there are keys missing from the db that are on the chain and this causes some mismatches in indexes. So this approach should be more accurate.
@@ -637,7 +649,6 @@ func (s *ServiceImpl) createNewKeyTx(ctx context.Context, logEntry *log.Entry, a
 }
 
 func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry, accountAddress string, oldKeyIndex uint32) (*transactions.Transaction, error) {
-
 	indexAsCadenceValue := cadence.NewInt(int(oldKeyIndex))
 	args := []transactions.Argument{indexAsCadenceValue}
 	logEntry.WithFields(log.Fields{"args": args}).Info("args prepared")
@@ -648,7 +659,10 @@ func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry
 	// this is by default using the 'least recently used key' for the transaction
 	// since we are just creating a new key, that is the one that should be used
 	// flow-wallet-api/keys/basic/keys.go#L165
-	//TODO: is that safe enough? Or should it be more explicit?
+	// FIXME: make this more explicit about which key is signing the revoke tx
+	// it is possible that it will use the key that is being revoked, which could mean that the tx fails
+	// if the tx is tried again, it will work, since that key is no longer the 'least recently used' key
+	// but this is confusing and not ideal
 	_, tx, err := s.txs.Create(ctx, sync, accountAddress, code, args, transactions.General)
 
 	if err != nil {
@@ -658,7 +672,3 @@ func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry
 
 	return tx, nil
 }
-
-// next steps :
-//  - use the new key to revoke access for the old key
-//  - this both checks to make sure that our new key can sign and is valid, and also cleans stuff up
