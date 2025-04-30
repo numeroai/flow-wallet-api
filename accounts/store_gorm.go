@@ -52,3 +52,8 @@ func (s *GormStore) DeleteKeyForAccount(a *Account, key *keys.Storable) error {
 		Delete(&keys.Storable{}).
 		Error
 }
+
+func (s *GormStore) GetKeysByType(keyType string) ([]keys.Storable, error) {
+	var keys []keys.Storable
+	return keys, s.db.Where("type = ?", keyType).Find(&keys).Error
+}

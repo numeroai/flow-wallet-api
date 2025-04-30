@@ -149,7 +149,7 @@ func (s *Accounts) AddNewKeyFunc(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleJsonResponse(rw, http.StatusCreated, acc)	
+	handleJsonResponse(rw, http.StatusCreated, acc)
 }
 
 // this is synchronous for now - make it async to be consistent with the rest
@@ -168,5 +168,19 @@ func (s *Accounts) RevokeKeyFunc(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleJsonResponse(rw, http.StatusOK, acc)	
+	handleJsonResponse(rw, http.StatusOK, acc)
+}
+
+func (s *Accounts) GetKeysByTypeFunc(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	keyType := vars["type"]
+
+	acc, err := s.service.GetKeysByType(r.Context(), keyType)
+
+	if err != nil {
+		handleError(rw, r, err)
+		return
+	}
+
+	handleJsonResponse(rw, http.StatusOK, acc)
 }

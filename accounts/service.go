@@ -37,6 +37,7 @@ type Service interface {
 	InitAdminAccount(ctx context.Context) error
 	AddNewKey(ctx context.Context, address flow.Address) (*Account, error)
 	RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error)
+	GetKeysByType(ctx context.Context, keyType string) ([]keys.Storable, error)
 }
 
 // ServiceImpl defines the API for account management.
@@ -671,4 +672,8 @@ func (s *ServiceImpl) createRevokeKeyTx(ctx context.Context, logEntry *log.Entry
 	}
 
 	return tx, nil
+}
+
+func (s *ServiceImpl) GetKeysByType(ctx context.Context, keyType string) ([]keys.Storable, error) {
+	return s.store.GetKeysByType(keyType)
 }

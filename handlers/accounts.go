@@ -55,3 +55,7 @@ func (s *Accounts) AddNewKey() http.Handler {
 func (s *Accounts) RevokeKey() http.Handler {
 	return http.HandlerFunc(s.RevokeKeyFunc)
 }
+
+func (s *Accounts) GetKeysByType() http.Handler {
+	return http.HandlerFunc(s.GetKeysByTypeFunc)
+}

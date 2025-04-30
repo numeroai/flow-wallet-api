@@ -24,4 +24,7 @@ type Store interface {
 
 	// Delete a storable key for an account
 	DeleteKeyForAccount(a *Account, key *keys.Storable) error
+
+	// Get keys by key type
+	GetKeysByType(keyType string) ([]keys.Storable, error)
 }
