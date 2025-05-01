@@ -1,4 +1,4 @@
-module github.com/flow-hydraulics/flow-wallet-api
+module github.com/numeroai/flow-wallet-api
 
 go 1.23
 

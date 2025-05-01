@@ -4,7 +4,7 @@ package m20211220
 import (
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/jobs"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"

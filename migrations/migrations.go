@@ -1,16 +1,16 @@
 package migrations
 
 import (
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20210922"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211005"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211015"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211118"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211130"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211202"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211220"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211221_1"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20211221_2"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations/internal/m20220212"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20210922"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211005"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211015"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211118"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211130"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211202"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211220"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211221_1"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20211221_2"
+	"github.com/numeroai/flow-wallet-api/migrations/internal/m20220212"
 	"github.com/go-gormigrate/gormigrate/v2"
 )
 

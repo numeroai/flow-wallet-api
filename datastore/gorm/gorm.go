@@ -3,8 +3,8 @@ package gorm
 import (
 	"fmt"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/migrations"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/migrations"
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

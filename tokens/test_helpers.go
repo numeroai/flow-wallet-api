@@ -3,10 +3,10 @@ package tokens
 import (
 	"context"
 
-	"github.com/flow-hydraulics/flow-wallet-api/accounts"
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
-	"github.com/flow-hydraulics/flow-wallet-api/templates/template_strings"
+	"github.com/numeroai/flow-wallet-api/accounts"
+	"github.com/numeroai/flow-wallet-api/flow_helpers"
+	"github.com/numeroai/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/templates/template_strings"
 	flow_templates "github.com/onflow/flow-go-sdk/templates"
 )
 

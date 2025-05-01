@@ -3,8 +3,8 @@ package accounts
 import (
 	"fmt"
 
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/keys"
 	"gorm.io/gorm"
 )
 

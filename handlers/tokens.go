@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
-	"github.com/flow-hydraulics/flow-wallet-api/tokens"
+	"github.com/numeroai/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/tokens"
 )
 
 type Tokens struct {

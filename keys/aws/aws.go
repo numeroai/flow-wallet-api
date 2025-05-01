@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/keys"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
 )

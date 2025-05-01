@@ -9,18 +9,18 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/accounts"
-	"github.com/flow-hydraulics/flow-wallet-api/chain_events"
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/datastore/gorm"
-	"github.com/flow-hydraulics/flow-wallet-api/handlers"
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/basic"
-	"github.com/flow-hydraulics/flow-wallet-api/system"
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
-	"github.com/flow-hydraulics/flow-wallet-api/tokens"
-	"github.com/flow-hydraulics/flow-wallet-api/transactions"
+	"github.com/numeroai/flow-wallet-api/accounts"
+	"github.com/numeroai/flow-wallet-api/chain_events"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/datastore/gorm"
+	"github.com/numeroai/flow-wallet-api/handlers"
+	"github.com/numeroai/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/keys/basic"
+	"github.com/numeroai/flow-wallet-api/system"
+	"github.com/numeroai/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/tokens"
+	"github.com/numeroai/flow-wallet-api/transactions"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/onflow/flow-go-sdk/access/grpc"
@@ -158,7 +158,7 @@ func runServer(cfg *configs.Config) {
 	rv := r.PathPrefix("/{apiVersion}").Subrouter()
 
 	// Debug
-	rv.Handle("/debug", handlers.Debug("https://github.com/flow-hydraulics/flow-wallet-api", sha1ver, buildTime)).Methods(http.MethodGet)
+	rv.Handle("/debug", handlers.Debug("https://github.com/numeroai/flow-wallet-api", sha1ver, buildTime)).Methods(http.MethodGet)
 
 	// Health
 	rv.HandleFunc("/health/ready", handlers.HandleHealthReady).Methods(http.MethodGet)

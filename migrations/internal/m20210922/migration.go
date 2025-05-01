@@ -3,7 +3,7 @@ package m20210922
 import (
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/templates"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

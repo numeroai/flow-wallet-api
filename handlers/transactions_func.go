@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/flow-hydraulics/flow-wallet-api/errors"
-	"github.com/flow-hydraulics/flow-wallet-api/transactions"
+	"github.com/numeroai/flow-wallet-api/errors"
+	"github.com/numeroai/flow-wallet-api/transactions"
 	"github.com/gorilla/mux"
 )
 

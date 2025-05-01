@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
-	"github.com/flow-hydraulics/flow-wallet-api/errors"
+	"github.com/numeroai/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/errors"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )

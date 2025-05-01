@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
-	"github.com/flow-hydraulics/flow-wallet-api/errors"
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/errors"
+	"github.com/numeroai/flow-wallet-api/flow_helpers"
+	"github.com/numeroai/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/keys"
 	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/access/grpc"
@@ -246,7 +246,7 @@ func (s *ServiceImpl) buildFlowTransaction(ctx context.Context, proposerAddress,
 	}
 
 	// Add authorizers. We assume proposer is always the sole authorizer
-	// https://github.com/flow-hydraulics/flow-wallet-api/issues/79
+	// https://github.com/numeroai/flow-wallet-api/issues/79
 	flowTx.AddAuthorizer(proposer.Address)
 
 	// Proposer signs the payload (unless proposer == payer).

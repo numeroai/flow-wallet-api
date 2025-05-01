@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/flow-hydraulics/flow-wallet-api/accounts"
+	"github.com/numeroai/flow-wallet-api/accounts"
 	"github.com/onflow/flow-go-sdk"
 )
 

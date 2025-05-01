@@ -7,13 +7,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/aws"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/encryption"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/google"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/local"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/flow_helpers"
+	"github.com/numeroai/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/keys/aws"
+	"github.com/numeroai/flow-wallet-api/keys/encryption"
+	"github.com/numeroai/flow-wallet-api/keys/google"
+	"github.com/numeroai/flow-wallet-api/keys/local"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
 )

@@ -14,7 +14,7 @@ import (
 
 	"github.com/sirupsen/logrus/hooks/test"
 
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/datastore"
 	"github.com/google/uuid"
 )
 

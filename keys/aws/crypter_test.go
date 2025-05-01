@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/encryption"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/keys/encryption"
 )
 
 // Needs to be run manually with proper env configuration

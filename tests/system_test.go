@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/handlers"
-	"github.com/flow-hydraulics/flow-wallet-api/tests/test"
+	"github.com/numeroai/flow-wallet-api/handlers"
+	"github.com/numeroai/flow-wallet-api/tests/test"
 	"github.com/gorilla/mux"
 )
 
