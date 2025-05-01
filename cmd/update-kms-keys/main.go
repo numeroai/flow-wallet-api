@@ -13,9 +13,21 @@ import (
 	"github.com/google/uuid"
 )
 
-const FLOW_WALLET_API_URL = "https://limitless-headland-29647.herokuapp.com/v1"
+var (
+	FLOW_WALLET_API_URL string
+)
 
 func main() {
+
+	flow_wallet_api_url := os.Getenv("FLOW_WALLET_API_URL")
+	if flow_wallet_api_url == "" {
+		fmt.Println("Environment variable FLOW_WALLET_API_URL is not set")
+		return
+	} else {
+		FLOW_WALLET_API_URL = flow_wallet_api_url
+		fmt.Println("FLOW_WALLET_API_URL: ", flow_wallet_api_url)
+	}
+
 	args := os.Args
 	fmt.Println("Args: ", args)
 	if len(args) == 1 {
