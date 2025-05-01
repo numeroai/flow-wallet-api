@@ -2,8 +2,10 @@ package main
 
 import (
 	// "bytes"
+
 	j "encoding/json"
 	"fmt"
+	"io"
 	h "net/http"
 	"os"
 	"strconv"
@@ -106,7 +108,7 @@ func getAwsKeys() []StorableKey {
 	return body
 }
 
-func addNewKey(accountAddress string) error{
+func addNewKey(accountAddress string) error {
 	fmt.Println("Adding a new key")
 
 	req, reqErr := h.NewRequest("POST", FLOW_WALLET_API_URL+"/accounts/"+accountAddress+"/add-new-key", nil)
@@ -128,8 +130,17 @@ func addNewKey(accountAddress string) error{
 	}
 
 	if res.StatusCode != h.StatusCreated {
-		fmt.Println("Not expected status code: ", res.StatusCode)
-		return fmt.Errorf("not expected status code: %d", res.StatusCode)
+		defer res.Body.Close()
+
+		b, err := io.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return err
+		}
+
+		fmt.Println(string(b))
+
+		return fmt.Errorf("unexpected status code: %d", res.StatusCode)
 	}
 	fmt.Println("Status code: ", res.StatusCode)
 
