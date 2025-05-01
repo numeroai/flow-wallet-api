@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers/internal"
+	"github.com/numeroai/flow-wallet-api/flow_helpers/internal"
 	"github.com/onflow/flow-go-sdk"
 )
 

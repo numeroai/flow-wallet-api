@@ -3,8 +3,8 @@ package tokens
 import (
 	"fmt"
 
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
-	"github.com/flow-hydraulics/flow-wallet-api/transactions"
+	"github.com/numeroai/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/transactions"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

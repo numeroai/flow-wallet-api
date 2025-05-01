@@ -2,8 +2,10 @@ package main
 
 import (
 	// "bytes"
+
 	j "encoding/json"
 	"fmt"
+	"io"
 	h "net/http"
 	"os"
 	"strconv"
@@ -11,8 +13,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// 0xfaaecfd784e1508a
+var (
+	FLOW_WALLET_API_URL string
+)
+
 func main() {
+
+	flow_wallet_api_url := os.Getenv("FLOW_WALLET_API_URL")
+	if flow_wallet_api_url == "" {
+		fmt.Println("Environment variable FLOW_WALLET_API_URL is not set")
+		return
+	} else {
+		FLOW_WALLET_API_URL = flow_wallet_api_url
+		fmt.Println("FLOW_WALLET_API_URL: ", flow_wallet_api_url)
+	}
 
 	args := os.Args
 	fmt.Println("Args: ", args)
@@ -37,7 +51,11 @@ func main() {
 			address := key.AccountAddress
 			fmt.Println("==========================")
 			fmt.Println("Updating account address: ", address)
-			addNewKey(address)
+			addNewKeyErr := addNewKey(address)
+			if addNewKeyErr != nil {
+				fmt.Println("Error adding new key: ", addNewKeyErr)
+				return
+			}
 			revokeOldKey(address, 0)
 			fmt.Println("==========================")
 		}
@@ -53,17 +71,24 @@ func main() {
 		for _, address := range addresses {
 			fmt.Println("==========================")
 			fmt.Println("Updating account address: ", address)
-			addNewKey(address)
+			addNewKeyErr := addNewKey(address)
+			if addNewKeyErr != nil {
+				fmt.Println("Error adding new key: ", addNewKeyErr)
+				return
+			}
 			revokeOldKey(address, 0)
 			fmt.Println("==========================")
 		}
+		return
+	} else {
+		fmt.Println("Invalid argument: ", args[1])
 		return
 	}
 }
 
 func getAwsKeys() []StorableKey {
 	fmt.Println("Getting AWS keys")
-	req, reqErr := h.NewRequest("GET", "http://localhost:3005/v1/get-keys/local", nil)
+	req, reqErr := h.NewRequest("GET", FLOW_WALLET_API_URL+"/get-keys/aws_kms", nil)
 	if reqErr != nil {
 		fmt.Println("Error:", reqErr)
 		return []StorableKey{}
@@ -95,13 +120,13 @@ func getAwsKeys() []StorableKey {
 	return body
 }
 
-func addNewKey(accountAddress string) {
+func addNewKey(accountAddress string) error {
 	fmt.Println("Adding a new key")
 
-	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+accountAddress+"/add-new-key", nil)
+	req, reqErr := h.NewRequest("POST", FLOW_WALLET_API_URL+"/accounts/"+accountAddress+"/add-new-key", nil)
 	if reqErr != nil {
 		fmt.Println("Error:", reqErr)
-		return
+		return reqErr
 	}
 
 	idempotencyKey := uuid.New().String()
@@ -113,12 +138,21 @@ func addNewKey(accountAddress string) {
 	res, resErr := httpClient.Do(req)
 	if resErr != nil {
 		fmt.Println("Error sending http request:", reqErr)
-		return
+		return resErr
 	}
 
 	if res.StatusCode != h.StatusCreated {
-		fmt.Println("Not expected status code: ", res.StatusCode)
-		return
+		defer res.Body.Close()
+
+		b, err := io.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return err
+		}
+
+		fmt.Println(string(b))
+
+		return fmt.Errorf("unexpected status code: %d", res.StatusCode)
 	}
 	fmt.Println("Status code: ", res.StatusCode)
 
@@ -126,19 +160,21 @@ func addNewKey(accountAddress string) {
 	decodeErr := j.NewDecoder(res.Body).Decode(&body)
 	if decodeErr != nil {
 		fmt.Println("Error decoding response:", decodeErr)
-		return
+		return decodeErr
 	}
 
 	newKey := body.Keys[len(body.Keys)-1]
 	fmt.Println("New key added: ", newKey.PublicKey)
 	fmt.Println("With index: ", newKey.Index)
 	fmt.Println("-------------------------")
+
+	return nil
 }
 
 func revokeOldKey(accountAddress string, keyIndex int) {
 	fmt.Println("Revoking key with index: ", keyIndex)
 
-	req, reqErr := h.NewRequest("POST", "http://localhost:3005/v1/accounts/"+accountAddress+"/revoke-key/"+strconv.Itoa(keyIndex), nil)
+	req, reqErr := h.NewRequest("POST", FLOW_WALLET_API_URL+"/accounts/"+accountAddress+"/revoke-key/"+strconv.Itoa(keyIndex), nil)
 	if reqErr != nil {
 		fmt.Println("Error:", reqErr)
 		return

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
-	"github.com/flow-hydraulics/flow-wallet-api/datastore/lib"
+	"github.com/numeroai/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/datastore/lib"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

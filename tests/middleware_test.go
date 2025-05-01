@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/handlers"
+	"github.com/numeroai/flow-wallet-api/handlers"
 	"github.com/gorilla/mux"
 )
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/keys"
 	"github.com/google/uuid"
 	"github.com/jpillora/backoff"
 	"github.com/onflow/flow-go-sdk"

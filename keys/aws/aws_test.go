@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/keys"
 )
 
 // Needs to be run manually with proper env configuration

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
-	"github.com/flow-hydraulics/flow-wallet-api/tests/test"
+	"github.com/numeroai/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/tests/test"
 	"github.com/google/uuid"
 )
 

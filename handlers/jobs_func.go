@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/jobs"
 	"github.com/gorilla/mux"
 )
 

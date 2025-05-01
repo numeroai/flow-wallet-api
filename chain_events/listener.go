@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	wallet_errors "github.com/flow-hydraulics/flow-wallet-api/errors"
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
-	"github.com/flow-hydraulics/flow-wallet-api/system"
+	wallet_errors "github.com/numeroai/flow-wallet-api/errors"
+	"github.com/numeroai/flow-wallet-api/flow_helpers"
+	"github.com/numeroai/flow-wallet-api/system"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/access/grpc"
 	log "github.com/sirupsen/logrus"

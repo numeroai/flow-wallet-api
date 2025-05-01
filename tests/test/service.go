@@ -8,18 +8,18 @@ import (
 	"go.uber.org/goleak"
 	upstreamgorm "gorm.io/gorm"
 
-	"github.com/flow-hydraulics/flow-wallet-api/accounts"
-	"github.com/flow-hydraulics/flow-wallet-api/chain_events"
-	"github.com/flow-hydraulics/flow-wallet-api/configs"
-	"github.com/flow-hydraulics/flow-wallet-api/datastore/gorm"
-	"github.com/flow-hydraulics/flow-wallet-api/flow_helpers"
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
-	"github.com/flow-hydraulics/flow-wallet-api/keys/basic"
-	"github.com/flow-hydraulics/flow-wallet-api/system"
-	"github.com/flow-hydraulics/flow-wallet-api/templates"
-	"github.com/flow-hydraulics/flow-wallet-api/tokens"
-	"github.com/flow-hydraulics/flow-wallet-api/transactions"
+	"github.com/numeroai/flow-wallet-api/accounts"
+	"github.com/numeroai/flow-wallet-api/chain_events"
+	"github.com/numeroai/flow-wallet-api/configs"
+	"github.com/numeroai/flow-wallet-api/datastore/gorm"
+	"github.com/numeroai/flow-wallet-api/flow_helpers"
+	"github.com/numeroai/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/keys/basic"
+	"github.com/numeroai/flow-wallet-api/system"
+	"github.com/numeroai/flow-wallet-api/templates"
+	"github.com/numeroai/flow-wallet-api/tokens"
+	"github.com/numeroai/flow-wallet-api/transactions"
 )
 
 type Services interface {
@@ -83,9 +83,9 @@ func GetServices(t *testing.T, cfg *configs.Config) Services {
 			goleak.IgnoreTopFunction("google.golang.org/grpc.(*ccBalancerWrapper).watcher"),
 			goleak.IgnoreTopFunction("google.golang.org/grpc/internal/transport.(*controlBuffer).get"),
 			goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"),
-			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/jobs.(*WorkerPoolImpl).startWorkers.func1"),
-			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/jobs.(*WorkerPoolImpl).startDBJobScheduler.func1"),
-			goleak.IgnoreTopFunction("github.com/flow-hydraulics/flow-wallet-api/chain_events.(*ListenerImpl).Start.func1"),
+			goleak.IgnoreTopFunction("github.com/numeroai/flow-wallet-api/jobs.(*WorkerPoolImpl).startWorkers.func1"),
+			goleak.IgnoreTopFunction("github.com/numeroai/flow-wallet-api/jobs.(*WorkerPoolImpl).startDBJobScheduler.func1"),
+			goleak.IgnoreTopFunction("github.com/numeroai/flow-wallet-api/chain_events.(*ListenerImpl).Start.func1"),
 		)
 	})
 

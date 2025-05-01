@@ -3,7 +3,7 @@ package jobs
 import (
 	"time"
 
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/datastore"
 	"github.com/google/uuid"
 )
 

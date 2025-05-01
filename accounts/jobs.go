@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/flow-hydraulics/flow-wallet-api/jobs"
+	"github.com/numeroai/flow-wallet-api/jobs"
 	"github.com/onflow/flow-go-sdk"
 	log "github.com/sirupsen/logrus"
 )

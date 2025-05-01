@@ -1,8 +1,8 @@
 package accounts
 
 import (
-	"github.com/flow-hydraulics/flow-wallet-api/datastore"
-	"github.com/flow-hydraulics/flow-wallet-api/keys"
+	"github.com/numeroai/flow-wallet-api/datastore"
+	"github.com/numeroai/flow-wallet-api/keys"
 )
 
 // Store manages data regarding accounts.
