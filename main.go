@@ -373,7 +373,7 @@ func runServer(cfg *configs.Config) {
 	log.Infof("Got signal: %s. Shutting down..", sig)
 
 	// Create a deadline to wait for.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Warnf("Error in server shutdown: %s", err)
