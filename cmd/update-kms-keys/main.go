@@ -1,8 +1,7 @@
 package main
 
 import (
-	// "bytes"
-
+	"bytes"
 	j "encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	t "github.com/onflow/sdks"
 )
 
 var (
@@ -30,7 +30,7 @@ func main() {
 	args := os.Args
 	fmt.Println("Args: ", args)
 	if len(args) == 1 {
-		fmt.Println("Accepted arguments: all, get-keys, with-addresses")
+		fmt.Println("Accepted arguments: get-keys, add-with-addresses, revoke-with-addresses, revoke-on-chain-with-address-and-index")
 		return
 	}
 
@@ -74,7 +74,23 @@ func main() {
 			revokeOldKey(address, 0)
 			fmt.Println("==========================")
 		}
-		return 
+		return
+	} else if args[1] == "revoke-on-chain-with-address-and-index" {
+		if len(args) < 4 {
+			fmt.Println("Please provide an address and an index to revoke")
+			return
+		}
+
+		address := os.Args[2]
+		index, err := strconv.Atoi(os.Args[3])
+		if err != nil {
+			fmt.Println("Error converting index to int: ", err)
+			return
+		}
+		fmt.Println("Revoking ", index, "for ", address)
+
+		revokeOldKeyOnChain(address, index)
+		return
 	} else {
 		fmt.Println("Invalid argument: ", args[1])
 		return
@@ -193,6 +209,64 @@ func revokeOldKey(accountAddress string, keyIndex int) {
 		fmt.Println("Error reading response body:", err)
 	}
 
+	fmt.Println(string(b))
+}
+
+func revokeOldKeyOnChain(accountAddress string, keyIndex int) {
+	args := []map[string]string{{"type": "Int", "value": strconv.Itoa(keyIndex)}}
+	// Create transaction
+	code := t.RemoveAccountKey
+
+	type requestBody struct {
+		Code      string      `json:"code"`
+		Arguments interface{} `json:"arguments"`
+	}
+
+	reqBody := requestBody{
+		Code:      code,
+		Arguments: args,
+	}
+
+	reqBodyBytes, err := j.Marshal(reqBody)
+	if err != nil {
+		fmt.Println("Error marshalling request body:", err)
+		return
+	}
+
+	fmt.Println("Request body: ", string(reqBodyBytes))
+	req, reqErr := h.NewRequest("POST", FLOW_WALLET_API_URL+"/accounts/"+accountAddress+"/transactions?", bytes.NewBuffer(reqBodyBytes))
+	if reqErr != nil {
+		fmt.Println("Error:", reqErr)
+		return
+	}
+	req.Header.Add("Idempotency-Key", uuid.New().String())
+	req.Header.Add("Content-Type", "application/json")
+
+	httpClient := &h.Client{}
+	res, resErr := httpClient.Do(req)
+	if resErr != nil {
+		fmt.Println("Error sending http request:", reqErr)
+		return
+	}
+	if res.StatusCode != h.StatusOK {
+		defer res.Body.Close()
+
+		b, err := io.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+
+		fmt.Println(string(b))
+	}
+
+	fmt.Println("Status code: ", res.StatusCode)
+	defer res.Body.Close()
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
 	fmt.Println(string(b))
 }
 

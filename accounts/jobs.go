@@ -97,7 +97,7 @@ func (s *ServiceImpl) executeAddNewKeyJob(ctx context.Context, j *jobs.Job) erro
 
 	return nil
 }
-
+	
 const RevokeKeyJobType = "revoke_key"
 
 type revokeKeyJobAttributes struct {
