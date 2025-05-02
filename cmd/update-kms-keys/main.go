@@ -18,7 +18,6 @@ var (
 )
 
 func main() {
-
 	flow_wallet_api_url := os.Getenv("FLOW_WALLET_API_URL")
 	if flow_wallet_api_url == "" {
 		fmt.Println("Environment variable FLOW_WALLET_API_URL is not set")
@@ -156,17 +155,15 @@ func addNewKey(accountAddress string) error {
 	}
 	fmt.Println("Status code: ", res.StatusCode)
 
-	var body ResponseBody
-	decodeErr := j.NewDecoder(res.Body).Decode(&body)
-	if decodeErr != nil {
-		fmt.Println("Error decoding response:", decodeErr)
-		return decodeErr
+	defer res.Body.Close()
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return err
 	}
 
-	newKey := body.Keys[len(body.Keys)-1]
-	fmt.Println("New key added: ", newKey.PublicKey)
-	fmt.Println("With index: ", newKey.Index)
-	fmt.Println("-------------------------")
+	fmt.Println(string(b))
 
 	return nil
 }
@@ -192,21 +189,59 @@ func revokeOldKey(accountAddress string, keyIndex int) {
 		return
 	}
 
-	if res.StatusCode != h.StatusOK {
-		fmt.Println("Not expected status code: ", res.StatusCode)
-		return
-	}
 	fmt.Println("Revert status code: ", res.StatusCode)
+	defer res.Body.Close()
 
-	var body ResponseBody
-	decodeErr := j.NewDecoder(res.Body).Decode(&body)
-	if decodeErr != nil {
-		fmt.Println("Error decoding response:", decodeErr)
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+	}
+
+	fmt.Println(string(b))
+}
+
+func signTestTransaction(address string) {
+	fmt.Println("Signing a test transaction with the new key")
+	b := struct {
+		Code string      `json:"key"`
+		Args interface{} `json:"args"`
+	}{
+		Code: "transaction(greeting: String) { prepare(signer: &Account) {} execute { log(greeting.concat(\", World!\")) } }",
+		Args: map[string]string{"type": "String", "value": "Hello"},
+	}
+
+	out, err := json.Marshal(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req, reqErr := h.NewRequest("POST", FLOW_WALLET_API_URL+"/accounts/"+address+"/sign", bytes.NewBuffer(out))
+	if reqErr != nil {
+		fmt.Println("Error:", reqErr)
 		return
 	}
 
-	oldKey := body.Keys[keyIndex]
-	fmt.Println("Key revoked from account: ", oldKey.PublicKey)
+	idempotencyKey := uuid.New().String()
+	req.Header.Add("Idempotency-Key", idempotencyKey)
+	req.Header.Add("Content-Type", "application/json")
+
+	httpClient := &h.Client{}
+
+	res, resErr := httpClient.Do(req)
+	if resErr != nil {
+		fmt.Println("Error sending http request:", reqErr)
+		return
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
+
+	fmt.Println(string(body))
 }
 
 type ReqBody struct {

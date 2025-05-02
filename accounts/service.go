@@ -35,8 +35,8 @@ type Service interface {
 	SyncAccountKeyCount(ctx context.Context, address flow.Address) (*jobs.Job, error)
 	Details(address string) (Account, error)
 	InitAdminAccount(ctx context.Context) error
-	AddNewKey(ctx context.Context, address flow.Address) (*Account, error)
-	RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error)
+	AddNewKey(ctx context.Context, address flow.Address) (*jobs.Job, error)
+	RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*jobs.Job, error)
 	GetKeysByType(ctx context.Context, keyType string) ([]keys.Storable, error)
 }
 
@@ -77,6 +77,8 @@ func NewService(
 	// Register asynchronous job executors
 	wp.RegisterExecutor(AccountCreateJobType, svc.executeAccountCreateJob)
 	wp.RegisterExecutor(SyncAccountKeyCountJobType, svc.executeSyncAccountKeyCountJob)
+	wp.RegisterExecutor(AddNewKeyJobType, svc.executeAddNewKeyJob)
+	wp.RegisterExecutor(RevokeKeyJobType, svc.executeRevokeKeyJob)
 
 	return svc
 }
@@ -456,22 +458,28 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 }
 
 // AddNewKey adds a new key to the given account
-func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Account, error) {
+func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*jobs.Job, error) {
 	fmt.Println("AddNewKey called")
 	// entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
 
-	// make it always async
-	job, err := s.wp.CreateJob(AddNewKeyJobType, "")
+	attrs := addNewKeyJobAttributes{Address: address}
+	attrBytes, err := json.Marshal(attrs)
 	if err != nil {
-		return &Account{}, err
+		return nil,  err
+	}
+
+	// make it always async
+	job, err := s.wp.CreateJob(AddNewKeyJobType, "", jobs.WithAttributes(attrBytes))
+	if err != nil {
+		return nil, err
 	}
 
 	err = s.wp.Schedule(job)
 	if err != nil {
-		return &Account{}, err
+		return nil, err
 	}
 
-	return &Account{}, nil
+	return job, nil
 }
 
 func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address flow.Address) (*Account, error) {
@@ -552,22 +560,26 @@ func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address f
 	return &dbAccount, nil
 }
 
-func (s *ServiceImpl) RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error) {
+func (s *ServiceImpl) RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*jobs.Job, error) {
 	fmt.Println("RevokeKey called")
 	// entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.RevokeKey"})
-
-	// make it always async
-	job, err := s.wp.CreateJob(RevokeKeyJobType, "")
+	attrs := revokeKeyJobAttributes{Address: address, OldKeyIndex: oldKeyIndex}
+	attrBytes, err := json.Marshal(attrs)
 	if err != nil {
-		return &Account{}, err
+		return nil, err
+	}
+	// make it always async
+	job, err := s.wp.CreateJob(RevokeKeyJobType, "", jobs.WithAttributes(attrBytes))
+	if err != nil {
+		return nil, err
 	}
 
 	err = s.wp.Schedule(job)
 	if err != nil {
-		return &Account{}, err
+		return nil, err
 	}
 
-	return &Account{}, nil
+	return job, nil
 }
 
 func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, address flow.Address, oldKeyIndex uint32) (*Account, error) {
