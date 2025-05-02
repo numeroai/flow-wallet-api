@@ -127,7 +127,7 @@ func (s *ServiceImpl) executeRevokeKeyJob(ctx context.Context, j *jobs.Job) erro
 		return err
 	}
 
-	j.Result = fmt.Sprintf("%s:%d", account, len(account.Keys))
+	j.Result = fmt.Sprintf("%s:%d", account.Address, len(account.Keys))
 
 	return nil
 }
