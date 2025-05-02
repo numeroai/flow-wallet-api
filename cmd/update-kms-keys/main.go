@@ -38,27 +38,7 @@ func main() {
 		fmt.Println("Getting keys")
 		getAwsKeys()
 		return
-	} else if args[1] == "all" {
-		fmt.Println("Updating all aws keys")
-		awsKeys := getAwsKeys()
-		if len(awsKeys) == 0 {
-			fmt.Println("No keys found")
-			return
-		}
-
-		for _, key := range awsKeys {
-			address := key.AccountAddress
-			fmt.Println("==========================")
-			fmt.Println("Updating account address: ", address)
-			addNewKeyErr := addNewKey(address)
-			if addNewKeyErr != nil {
-				fmt.Println("Error adding new key: ", addNewKeyErr)
-				return
-			}
-			revokeOldKey(address, 0)
-			fmt.Println("==========================")
-		}
-	} else if args[1] == "with-addresses" {
+	} else if args[1] == "add-with-addresses" {
 		if len(args) == 2 {
 			fmt.Println("Please provide at least one address")
 			return
@@ -75,10 +55,26 @@ func main() {
 				fmt.Println("Error adding new key: ", addNewKeyErr)
 				return
 			}
-			revokeOldKey(address, 0)
+			// revokeOldKey(address, 0)
 			fmt.Println("==========================")
 		}
 		return
+	} else if args[1] == "revoke-with-addresses" {
+		if len(args) == 2 {
+			fmt.Println("Please provide at least one address")
+			return
+		}
+
+		addresses := os.Args[2:]
+		fmt.Println("Processing ", len(addresses), " addresses")
+
+		for _, address := range addresses {
+			fmt.Println("==========================")
+			fmt.Println("Revoked key 0 for account address: ", address)
+			revokeOldKey(address, 0)
+			fmt.Println("==========================")
+		}
+		return 
 	} else {
 		fmt.Println("Invalid argument: ", args[1])
 		return
