@@ -458,15 +458,20 @@ func (s *ServiceImpl) createAccount(ctx context.Context) (*Account, string, erro
 // AddNewKey adds a new key to the given account
 func (s *ServiceImpl) AddNewKey(ctx context.Context, address flow.Address) (*Account, error) {
 	fmt.Println("AddNewKey called")
-	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
+	// entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.AddNewKey"})
 
-	account, err := s.addKey(ctx, entry, address)
+	// make it always async
+	job, err := s.wp.CreateJob(AddNewKeyJobType, "")
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to add new key")
-		return nil, err
+		return &Account{}, err
 	}
 
-	return account, nil
+	err = s.wp.Schedule(job)
+	if err != nil {
+		return &Account{}, err
+	}
+
+	return &Account{}, nil
 }
 
 func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address flow.Address) (*Account, error) {
@@ -549,15 +554,20 @@ func (s *ServiceImpl) addKey(ctx context.Context, logEntry *log.Entry, address f
 
 func (s *ServiceImpl) RevokeKey(ctx context.Context, address flow.Address, oldKeyIndex uint32) (*Account, error) {
 	fmt.Println("RevokeKey called")
-	entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.RevokeKey"})
+	// entry := log.WithFields(log.Fields{"address": address, "function": "ServiceImpl.RevokeKey"})
 
-	account, err := s.revokeKey(ctx, entry, address, oldKeyIndex)
+	// make it always async
+	job, err := s.wp.CreateJob(RevokeKeyJobType, "")
 	if err != nil {
-		entry.WithFields(log.Fields{"err": err}).Error("failed to revoke key")
-		return nil, err
+		return &Account{}, err
 	}
 
-	return account, nil
+	err = s.wp.Schedule(job)
+	if err != nil {
+		return &Account{}, err
+	}
+
+	return &Account{}, nil
 }
 
 func (s *ServiceImpl) revokeKey(ctx context.Context, logEntry *log.Entry, address flow.Address, oldKeyIndex uint32) (*Account, error) {
