@@ -142,14 +142,14 @@ func (s *Accounts) AddNewKeyFunc(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	address := flow.HexToAddress(vars["address"])
-	acc, err := s.service.AddNewKey(r.Context(), address)
+	job, err := s.service.AddNewKey(r.Context(), address)
 
 	if err != nil {
 		handleError(rw, r, err)
 		return
 	}
 
-	handleJsonResponse(rw, http.StatusCreated, acc)
+	handleJsonResponse(rw, http.StatusCreated, job) 
 }
 
 // this is synchronous for now - make it async to be consistent with the rest
@@ -161,14 +161,14 @@ func (s *Accounts) RevokeKeyFunc(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		handleError(rw, r, err)
 	}
-	acc, err := s.service.RevokeKey(r.Context(), address, uint32(key))
+	job, err := s.service.RevokeKey(r.Context(), address, uint32(key))
 
 	if err != nil {
 		handleError(rw, r, err)
 		return
 	}
 
-	handleJsonResponse(rw, http.StatusOK, acc)
+	handleJsonResponse(rw, http.StatusOK, job)
 }
 
 func (s *Accounts) GetKeysByTypeFunc(rw http.ResponseWriter, r *http.Request) {

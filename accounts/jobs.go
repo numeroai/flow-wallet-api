@@ -64,3 +64,70 @@ func (s *ServiceImpl) executeSyncAccountKeyCountJob(ctx context.Context, j *jobs
 
 	return nil
 }
+
+const AddNewKeyJobType = "add_new_key"
+
+type addNewKeyJobAttributes struct {
+	Address flow.Address `json:"address"`
+}
+
+func (s *ServiceImpl) executeAddNewKeyJob(ctx context.Context, j *jobs.Job) error {
+	entry := log.WithFields(log.Fields{"job": j, "function": "executeAddNewKeyJob"})
+	if j.Type != AddNewKeyJobType {
+		return jobs.ErrInvalidJobType
+	}
+
+	j.ShouldSendNotification = false
+
+	var attrs addNewKeyJobAttributes
+	err := json.Unmarshal(j.Attributes, &attrs)
+	if err != nil {
+		return err
+	}
+
+	entry.WithFields(log.Fields{"attrs": j.Attributes}).Trace("Unmarshaled attributes")
+
+	account, err := s.addKey(ctx, entry, attrs.Address)
+	entry.WithFields(log.Fields{"err": err}).Trace("s.syncAccountKeyCount complete")
+	if err != nil {
+		return err
+	}
+
+	j.Result = fmt.Sprintf("%s:%d", account.Address, len(account.Keys))
+
+	return nil
+}
+	
+const RevokeKeyJobType = "revoke_key"
+
+type revokeKeyJobAttributes struct {
+	Address     flow.Address `json:"address"`
+	OldKeyIndex uint32       `json:"oldKeyIndex"`
+}
+
+func (s *ServiceImpl) executeRevokeKeyJob(ctx context.Context, j *jobs.Job) error {
+	entry := log.WithFields(log.Fields{"job": j, "function": "executeRevokeKeyJob"})
+	if j.Type != RevokeKeyJobType {
+		return jobs.ErrInvalidJobType
+	}
+
+	j.ShouldSendNotification = false
+
+	var attrs revokeKeyJobAttributes
+	err := json.Unmarshal(j.Attributes, &attrs)
+	if err != nil {
+		return err
+	}
+
+	entry.WithFields(log.Fields{"attrs": j.Attributes}).Trace("Unmarshaled attributes")
+
+	account, err := s.revokeKey(ctx, entry, attrs.Address, attrs.OldKeyIndex)
+	entry.WithFields(log.Fields{"err": err}).Trace("s.revokeKey complete")
+	if err != nil {
+		return err
+	}
+
+	j.Result = fmt.Sprintf("%s:%d", account.Address, len(account.Keys))
+
+	return nil
+}

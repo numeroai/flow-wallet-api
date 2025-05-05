@@ -114,20 +114,6 @@ func TestAccountServices(t *testing.T) {
 		}
 	})
 
-	t.Run("sync add new key", func(t *testing.T) {
-		_, account, err := svc.Create(context.Background(), true)
-		fatal(t, err)
-		originalKeyCount := len(account.Keys)
-
-		account, err = svc.AddNewKey(context.Background(), flow.HexToAddress(account.Address))
-		fatal(t, err)
-		updatedKeyCount := len(account.Keys)
-
-		if updatedKeyCount != originalKeyCount+1 {
-			t.Fatalf("expected key count to be %d, got %d", originalKeyCount+1, updatedKeyCount)
-		}	
-	})
-
 	t.Run("async create", func(t *testing.T) {
 		job, _, err := svc.Create(context.Background(), false)
 		fatal(t, err)
